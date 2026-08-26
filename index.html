@@ -389,8 +389,8 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     </div>
   </details>
 
-  <!-- ===== INSTALAR COMO APP ===== -->
-  <details class="hidden" id="instalar">
+  <!-- ===== INSTALAR COMO APP (visible siempre, también antes de armar el plan) ===== -->
+  <details id="instalar">
     <summary>
       <span class="sum-l">
         <span class="sum-t">Agregalo como app al teléfono</span>
@@ -648,7 +648,9 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       '</span></button>';
   }
 
-  var ALL = ["todayCard","crystalCard","progressCard","planCard","remindCard","costCard","instalar","disclaimer","resetRow"];
+  // "instalar" queda fuera de esta lista a propósito: se muestra siempre,
+  // incluido en la pantalla inicial, que es justo cuando conviene instalarlo.
+  var ALL = ["todayCard","crystalCard","progressCard","planCard","remindCard","costCard","disclaimer","resetRow"];
 
   // Muestra los pasos del sistema que está usando la persona y deja los del
   // otro a un toque, porque el link se comparte entre teléfonos distintos.
