@@ -205,6 +205,7 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute
 td.n{font-variant-numeric:tabular-nums;font-family:"Chakra Petch",sans-serif;font-weight:600}
 .save{color:var(--ok);font-weight:700}
 .scroll-x{overflow-x:auto}
+.sub-h{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
 
 /* ---- varios ---- */
 .steps{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--ink-2)}
@@ -346,6 +347,41 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     </div>
     <p class="verdict" id="recarga"></p>
   </section>
+
+  <!-- ===== PRECIOS POR PAÍS ===== -->
+  <details class="hidden" id="precios">
+    <summary>
+      <span class="sum-l">
+        <span class="sum-t">Cuánto te sale recargar</span>
+        <span class="sum-s" id="preciosSummary"></span>
+      </span>
+      <span class="chev"></span>
+    </summary>
+    <div class="det-body">
+      <div class="field">
+        <label for="fPais">País</label>
+        <select id="fPais">
+          <option value="ar">Argentina · pesos</option>
+          <option value="ve">Venezuela · bolívares</option>
+        </select>
+      </div>
+      <p class="verdict mine" id="comboSugerido"></p>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th></th><th>Diamantes</th><th>Precio</th><th>c/💎</th></tr></thead>
+          <tbody id="packsBody"></tbody>
+        </table>
+      </div>
+      <h3 class="sub-h">Pases</h3>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Pase</th><th>Precio</th><th>Equivale a</th></tr></thead>
+          <tbody id="pasesBody"></tbody>
+        </table>
+      </div>
+      <p class="note" id="preciosNota"></p>
+    </div>
+  </details>
 
   <!-- ===== PROGRESO ===== -->
   <section class="card hidden" id="progressCard">
@@ -525,6 +561,67 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     {id:"mensual", name:"Paquete mensual de 99💎",  meta:"entre 120 y 300 cristales, una vez al mes", one:200, rate:0, dia:99},
     {id:"semanal", name:"Pases semanales",          meta:"hasta 10 cristales por día en el paquete de elección", one:0, rate:10, dia:0}
   ];
+
+
+  // Precios tomados de Bonoxs el 26 de agosto de 2026. Los diamantes son
+  // base + bonus, que es lo que realmente entra a la cuenta.
+  var PRECIOS = {
+    ar: {
+      pais:"Argentina", moneda:"$", local:"es-AR",
+      packs:[{d:23,p:757},{d:47,p:1514},{d:86,p:2330},{d:95,p:3029},{d:172,p:4663},
+             {d:192,p:6040},{d:257,p:6961},{d:343,p:9291},{d:706,p:18643},{d:971,p:30236},
+             {d:1498,p:39616},{d:2195,p:55930},{d:3688,p:93217},{d:5532,p:139825},
+             {d:6210,p:181364},{d:9288,p:233042}],
+      pases:[{n:"Paquete Semanal Élite",p:1409},{n:"Pase Semanal",p:2983},
+             {n:"Paquete Mensual Épico",p:6958},{n:"Pase Crepuscular",p:15380}]
+    },
+    ve: {
+      pais:"Venezuela", moneda:"Bs", local:"es-VE",
+      packs:[{d:23,p:441},{d:47,p:881},{d:86,p:1356},{d:95,p:1763},{d:172,p:2714},
+             {d:192,p:3516},{d:257,p:4052},{d:343,p:5408},{d:706,p:10851},{d:971,p:17598},
+             {d:1498,p:23058},{d:2195,p:32553},{d:3688,p:54255},{d:5532,p:81382},
+             {d:6210,p:105559},{d:9288,p:135637}],
+      pases:[{n:"Paquete Semanal Élite",p:820},{n:"Pase Semanal",p:1736},
+             {n:"Paquete Mensual Épico",p:4050},{n:"Pase Crepuscular",p:8952}]
+    }
+  };
+
+  // La compra más barata que cubre el objetivo. Programación dinámica sobre
+  // los diamantes, permitiendo pasarse (a veces un paquete grande sale menos
+  // que dos chicos que dan justo).
+  function mejorCombo(objetivo, packs){
+    if(objetivo <= 0) return null;
+    var max = 0;
+    packs.forEach(function(x){ if(x.d > max) max = x.d; });
+    var tope = objetivo + max;
+    var dp = [], de = [];
+    for(var i=0;i<=tope;i++){ dp.push(Infinity); de.push(-1); }
+    dp[0] = 0;
+    for(var d=1; d<=tope; d++){
+      for(var k=0;k<packs.length;k++){
+        var prev = Math.max(0, d - packs[k].d);
+        if(dp[prev] + packs[k].p < dp[d]){ dp[d] = dp[prev] + packs[k].p; de[d] = k; }
+      }
+    }
+    var mejor = objetivo;
+    for(var d2=objetivo; d2<=tope; d2++) if(dp[d2] < dp[mejor]) mejor = d2;
+    var cuenta = {}, cur = mejor, suma = 0, guard = 0;
+    while(cur > 0 && de[cur] >= 0 && guard++ < 200){
+      var idx = de[cur];
+      cuenta[idx] = (cuenta[idx] || 0) + 1;
+      suma += packs[idx].d;
+      cur = Math.max(0, cur - packs[idx].d);
+    }
+    return {costo:dp[mejor], diamantes:suma, cuenta:cuenta};
+  }
+
+  function plata(n, pais, dec){
+    var P = PRECIOS[pais];
+    var v = (typeof dec === "number")
+      ? n.toLocaleString(P.local, {minimumFractionDigits:dec, maximumFractionDigits:dec})
+      : Math.round(n).toLocaleString(P.local);
+    return P.moneda + " " + v;
+  }
 
   var COST_TIRO = 25, COST_X10 = 350, CRIS_TIRO = 50, CRIS_X10 = 500;
 
@@ -731,7 +828,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 
   // "instalar" queda fuera de esta lista a propósito: se muestra siempre,
   // incluido en la pantalla inicial, que es justo cuando conviene instalarlo.
-  var ALL = ["todayCard","crystalCard","diamondCard","progressCard","planCard","remindCard","costCard","disclaimer","resetRow"];
+  var ALL = ["todayCard","crystalCard","diamondCard","precios","progressCard","planCard","remindCard","costCard","disclaimer","resetRow"];
 
   // Muestra los pasos del sistema que está usando la persona y deja los del
   // otro a un toque, porque el link se comparte entre teléfonos distintos.
@@ -970,6 +1067,54 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     }
     if(document.activeElement !== $("fDiamantes")) $("fDiamantes").value = tieneDia ? state.diamantes : "";
 
+    // --- precios por país ---
+    var pais = state.pais || "ar", P = PRECIOS[pais];
+    $("fPais").value = pais;
+    var objetivo = (recargar !== null) ? recargar : faltaTotal;
+    var combo = mejorCombo(objetivo, P.packs);
+
+    if(combo){
+      var partes = [];
+      Object.keys(combo.cuenta).forEach(function(i){
+        var q = combo.cuenta[i];
+        partes.push((q > 1 ? q + "× " : "") + P.packs[i].d + "💎");
+      });
+      $("comboSugerido").innerHTML =
+        "Para juntar los <b>" + objetivo + "💎</b> que te faltan, lo más barato en " + P.pais +
+        " es " + partes.join(" + ") + " — te quedan " + combo.diamantes + "💎 por <b>" +
+        plata(combo.costo, pais) + "</b>.";
+      $("preciosSummary").textContent = objetivo + "💎 ≈ " + plata(combo.costo, pais) + " en " + P.pais;
+    } else {
+      $("comboSugerido").innerHTML = "No necesitás recargar: con lo que tenés en la cuenta llegás al final del plan.";
+      $("preciosSummary").textContent = "Precios de " + P.pais;
+    }
+
+    var pb = "";
+    P.packs.forEach(function(x){
+      var elegido = combo && combo.cuenta[P.packs.indexOf(x)];
+      pb += '<tr' + (elegido ? ' style="background:var(--accent-soft)"' : '') + '>' +
+        '<td>' + (elegido ? (elegido > 1 ? elegido + "× " : "✓ ") : "") + '</td>' +
+        '<td class="n">' + x.d + '</td>' +
+        '<td class="n">' + plata(x.p, pais) + '</td>' +
+        '<td class="n">' + plata(x.p / x.d, pais, 1) + '</td></tr>';
+    });
+    $("packsBody").innerHTML = pb;
+
+    // cuántos diamantes vale cada pase, al precio del paquete más conveniente
+    var mejorRatio = Infinity;
+    P.packs.forEach(function(x){ if(x.p / x.d < mejorRatio) mejorRatio = x.p / x.d; });
+    var sb = "";
+    P.pases.forEach(function(x){
+      sb += '<tr><td>' + x.n + '</td><td class="n">' + plata(x.p, pais) + '</td>' +
+            '<td class="n">~' + Math.round(x.p / mejorRatio) + '💎</td></tr>';
+    });
+    $("pasesBody").innerHTML = sb;
+
+    $("preciosNota").innerHTML = "Precios de <b>Bonoxs</b> tomados el 26 de agosto de 2026, impuestos incluidos. " +
+      "Cambian seguido, sobre todo en bolívares: confirmalos en la tienda antes de comprar. " +
+      "La columna «equivale a» traduce el precio del pase a diamantes usando el paquete de mejor precio por diamante, " +
+      "para que puedas ver si te conviene — no cuenta los diamantes que el pase devuelve día a día.";
+
     // cada skin se compara con SU plan más corto posible, no con uno genérico
     var cb = "", ahorroActual = 0;
     GOAL_ORDER.forEach(function(k){
@@ -1058,7 +1203,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     if(!ini || !fin){ err.textContent = "Poné las dos fechas del evento."; return; }
     if(dayDiff(parseISO(ini), parseISO(fin)) < 6){ err.textContent = "El evento tiene que durar al menos 7 días para que el método cierre."; return; }
     err.textContent = "";
-    state = {goal:goal, ini:ini, fin:fin, dias:{}, src:{vip:true, diario:true, mensual:true, semanal:false}, hora:"20:00", saldo:null, claimed:{}, diamantes:null};
+    state = {goal:goal, ini:ini, fin:fin, dias:{}, src:{vip:true, diario:true, mensual:true, semanal:false}, hora:"20:00", saldo:null, claimed:{}, diamantes:null, pais:"ar"};
     currentWeek = null;
     save(); render();
     window.scrollTo({top:0, behavior:"smooth"});
@@ -1127,6 +1272,11 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     btn.textContent = "Guardado \u2713";
     setTimeout(function(){ btn.textContent = "Guardar"; }, 1500);
   });
+  $("fPais").addEventListener("change", function(){
+    if(!state) return;
+    state.pais = this.value; save(); render();
+  });
+
   $("fDiamantes").addEventListener("keydown", function(e){
     if(e.key === "Enter"){ e.preventDefault(); $("btnDiamantes").click(); }
   });
