@@ -600,7 +600,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     return D;
   }
 
-  function buildPlan(n){
+  function buildPlan(n, cristales){
     var ini = parseISO(state.ini);
     var goal = GOALS[state.goal];
     var sim = simular(n, goal.tiros);
@@ -628,15 +628,22 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
         day.tiros = 17; day.dia = COST_X10 + COST_TIRO;
         day.note = "11 tiros pagados + 6 que te dan los tokens = 17. El tiro por 10 lo podés correr a cualquier día de la primera semana, pero el tiro diario arranca hoy sí o sí.";
       } else if(i===n){
+        // los cristales cubren lo que puedan; el resto de los tiros se paga
+        // con diamantes, que salen más baratos por tiro (25💎 vs 50 cristales)
         var falta = sim.comprados;
-        var n10 = Math.floor(falta/10), n1 = falta - n10*10;
+        var conCris = Math.min(falta, Math.floor(cristales / CRIS_TIRO));
+        var conDia = falta - conCris;
         day.title = "Día final: quemá los cristales";
-        if(n10>0) day.tasks.push({t:n10+" "+(n10===1?"tiro":"tiros")+" por 10 · "+(n10*CRIS_X10)+" cristales", key:true});
-        if(n1>0)  day.tasks.push({t:n1+" "+(n1===1?"tiro suelto":"tiros sueltos")+" · "+(n1*CRIS_TIRO)+" cristales", key:true});
-        if(falta<=0) day.tasks.push({t:"Ya llegaste al objetivo sin gastar cristales.", key:true});
+        if(conCris>0) day.tasks.push({t:conCris+" "+(conCris===1?"tiro":"tiros")+" con cristales · <b>"+(conCris*CRIS_TIRO)+" cristales</b>", key:true});
+        if(conDia>0)  day.tasks.push({t:conDia+" "+(conDia===1?"tiro":"tiros")+" con diamantes · <b>"+(conDia*COST_TIRO)+"💎</b>", key:true});
+        if(falta<=0)  day.tasks.push({t:"Ya llegaste al objetivo sin gastar cristales.", key:true});
         day.tiros = falta;
-        day.cris = falta * CRIS_TIRO;
-        day.note = "Sale igual gastar en tiros por 10 que sueltos: 50 cristales por tiro en los dos casos.";
+        day.cris = conCris * CRIS_TIRO;
+        day.dia = conDia * COST_TIRO;
+        day.conCris = conCris; day.conDia = conDia;
+        day.note = conDia > 0
+          ? "Los cristales no llegan a cubrir todo el día final, así que los últimos tiros se pagan con diamantes."
+          : "Sale igual gastar en tiros por 10 que sueltos: 50 cristales por tiro en los dos casos.";
       } else {
         day.title = "Tiro diario (25💎)";
         day.tasks = [{t:"1 tiro por 1 · 25💎 → <b>1 tiro</b>"}];
@@ -759,7 +766,8 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 
     // el plan dura lo que haga falta según los cristales, no todo el evento
     var D = largoOptimo(Dtotal, todayN, goal.tiros);
-    var built = buildPlan(D), plan = built.plan;
+    var cm = crystalMath(D, todayN);
+    var built = buildPlan(D, cm.mid), plan = built.plan;
     var recorta = Dtotal - D;
 
     $("subtitle").innerHTML = goal.name + "<br>" + goal.tiros + " tiros · " +
@@ -798,7 +806,6 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     // --- progreso ---
     var tiros = 0, diaGast = 0;
     plan.forEach(function(d){ if(state.dias[d.n]){ tiros += d.tiros; diaGast += d.dia; } });
-    var cm = crystalMath(D, todayN);
     $("sTiros").textContent = tiros + "/" + goal.tiros;
     $("sDias").textContent = diaGast;
     $("sCris").textContent = "~" + cm.mid;
@@ -806,23 +813,31 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 
     // --- cristales ---
     var finalDay = plan[D-1];
-    var falta = finalDay.cris;
     var v = $("verdict"), msg;
-    if(cm.mid >= falta){
+    var ahorroDias = function(){
+      var porDia = COST_TIRO;
+      SOURCES.forEach(function(x){ if(state.src[x.id] && x.rate > 0) porDia += x.dia; });
+      return recorta * porDia;
+    };
+
+    if(finalDay.conDia > 0){
+      // no alcanzan: se dice qué cubren y cuánto cuesta el resto en diamantes
+      v.className = "verdict bad";
+      msg = "Vas a juntar <b>~" + cm.mid + "</b> cristales. Te alcanzan para <b>" +
+        finalDay.conCris + "</b> de los " + finalDay.tiros + " tiros del último día; " +
+        "los otros <b>" + finalDay.conDia + "</b> los pagás con diamantes (<b>" +
+        (finalDay.conDia * COST_TIRO) + "💎</b>, ya incluidos en lo que te falta gastar).";
+    } else {
       v.className = "verdict good";
-      msg = "Vas a usar <b>" + falta + "</b> cristales el " + fmt(finalDay.date) + " y vas a llegar con <b>~" + cm.mid + "</b>.";
-      var sobra = cm.mid - falta;
+      msg = "El " + fmt(finalDay.date) + " hacés los últimos <b>" + finalDay.tiros +
+        "</b> tiros con <b>" + finalDay.cris + "</b> cristales. Vas a juntar ~" + cm.mid + ", así que te alcanza.";
       if(recorta > 0){
-        var porDia = COST_TIRO;
-        SOURCES.forEach(function(x){ if(state.src[x.id] && x.rate > 0) porDia += x.dia; });
         msg += " Gracias a ellos el plan te dura <b>" + D + " días en vez de " + Dtotal +
                "</b>: terminás " + recorta + (recorta === 1 ? " día" : " días") +
-               " antes y te ahorrás ~" + (recorta * porDia) + "💎.";
+               " antes y te ahorrás ~" + ahorroDias() + "💎.";
       }
+      var sobra = cm.mid - finalDay.cris;
       if(sobra >= CRIS_TIRO) msg += " Te sobran ~" + sobra + " para el próximo evento.";
-    } else {
-      v.className = "verdict bad";
-      msg = "Necesitás <b>" + falta + "</b> cristales el último día y vas a llegar con <b>~" + cm.mid + "</b>. Te faltan ~" + (falta-cm.mid) + ": prendé otra fuente o tapá la diferencia con " + (falta-cm.mid) + "💎.";
     }
     v.innerHTML = msg;
 
