@@ -228,6 +228,14 @@ td.n{font-variant-numeric:tabular-nums;font-family:"Chakra Petch",sans-serif;fon
 @keyframes correr{0%{transform:translateX(-115%)}100%{transform:translateX(310%)}}
 @media (prefers-reduced-motion:reduce){.gema,.splash-barra>i{animation:none}}
 
+/* ---- guía para instalar como app ---- */
+.guia{width:100%;height:auto;display:block;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
+.g-url{font-family:"Figtree",sans-serif;font-size:8px;fill:var(--muted)}
+.g-item{font-family:"Figtree",sans-serif;font-size:9.5px;font-weight:600;fill:var(--ink)}
+.g-num{font-family:"Chakra Petch",sans-serif;font-size:11px;font-weight:700;fill:#fff;text-anchor:middle}
+#instalar summary .sum-t{color:var(--accent)}
+.note a{color:var(--accent);font-weight:600;text-underline-offset:2px}
+
 .hidden{display:none !important}
 footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important;scroll-behavior:auto !important}}
@@ -378,6 +386,69 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
         </table>
       </div>
       <p class="note">La tabla compara las tres skins haciendo el método <strong>desde cero</strong>, en diamantes equivalentes (1 cristal ≈ 1 diamante), para que se vean parejas entre sí. El número de arriba es distinto: son los diamantes que te quedan por poner a vos, descontando lo que ya hiciste y los cristales que ya tenías guardados.</p>
+    </div>
+  </details>
+
+  <!-- ===== INSTALAR COMO APP ===== -->
+  <details class="hidden" id="instalar">
+    <summary>
+      <span class="sum-l">
+        <span class="sum-t">Agregalo como app al teléfono</span>
+        <span class="sum-s">Queda con ícono propio y abre sin la barra del navegador.</span>
+      </span>
+      <span class="chev"></span>
+    </summary>
+    <div class="det-body">
+
+      <div id="pasosAndroid">
+        <svg class="guia" viewBox="0 0 300 232" role="img" aria-label="El menú de tres puntos arriba a la derecha, y dentro la opción Agregar a la pantalla principal">
+          <!-- barra del navegador -->
+          <rect x="4" y="8" width="292" height="34" rx="9" fill="var(--surface-2)" stroke="var(--line)"/>
+          <rect x="16" y="17" width="200" height="16" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="26" y="29" class="g-url">vulzagem.github.io</text>
+          <circle cx="272" cy="20" r="1.9" fill="var(--ink-2)"/>
+          <circle cx="272" cy="25" r="1.9" fill="var(--ink-2)"/>
+          <circle cx="272" cy="30" r="1.9" fill="var(--ink-2)"/>
+          <circle cx="272" cy="25" r="15" fill="none" stroke="var(--accent-fill)" stroke-width="2.5"/>
+          <circle cx="252" cy="9" r="9" fill="var(--accent-fill)"/>
+          <text x="252" y="12.5" class="g-num">1</text>
+
+          <!-- menú desplegado -->
+          <rect x="96" y="56" width="200" height="168" rx="11" fill="var(--surface-2)" stroke="var(--line)"/>
+          <rect x="110" y="70" width="96" height="7" rx="3.5" fill="var(--line)"/>
+          <rect x="110" y="90" width="120" height="7" rx="3.5" fill="var(--line)"/>
+          <rect x="110" y="110" width="84" height="7" rx="3.5" fill="var(--line)"/>
+          <rect x="110" y="130" width="110" height="7" rx="3.5" fill="var(--line)"/>
+
+          <!-- fila resaltada -->
+          <rect x="102" y="148" width="188" height="34" rx="8" fill="var(--accent-soft)" stroke="var(--accent-fill)" stroke-width="2"/>
+          <path d="M116 159h13v9h-13z" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+          <path d="M122.5 162v5m0 0l-2.5-2.5m2.5 2.5l2.5-2.5" stroke="var(--accent)" stroke-width="1.6" fill="none"/>
+          <text x="136" y="169" class="g-item">Agregar a la pantalla</text>
+          <text x="136" y="178" class="g-item">principal</text>
+          <circle cx="102" cy="148" r="9" fill="var(--accent-fill)"/>
+          <text x="102" y="151.5" class="g-num">2</text>
+
+          <rect x="110" y="196" width="100" height="7" rx="3.5" fill="var(--line)"/>
+        </svg>
+
+        <ol class="steps">
+          <li>Tocá los <strong>tres puntos</strong> arriba a la derecha del navegador.</li>
+          <li>Elegí <strong>Agregar a la pantalla principal</strong>.</li>
+          <li>Confirmá el nombre y listo: te queda el ícono junto a tus otras apps.</li>
+        </ol>
+      </div>
+
+      <div id="pasosIphone">
+        <ol class="steps">
+          <li>Abrí la página en <strong>Safari</strong> (con Chrome en iPhone no se puede).</li>
+          <li>Tocá el botón <strong>Compartir</strong>, el cuadrado con la flecha hacia arriba.</li>
+          <li>Bajá y elegí <strong>Agregar a inicio</strong>.</li>
+        </ol>
+      </div>
+
+      <p class="note" id="otroSistema"></p>
+      <p class="note">Sirve igual que una app: abre a pantalla completa, sin barra de direcciones, y el plan que marcaste sigue ahí. No ocupa casi nada porque no se instala nada de verdad — es un acceso directo.</p>
     </div>
   </details>
 
@@ -577,7 +648,23 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       '</span></button>';
   }
 
-  var ALL = ["todayCard","crystalCard","progressCard","planCard","remindCard","costCard","disclaimer","resetRow"];
+  var ALL = ["todayCard","crystalCard","progressCard","planCard","remindCard","costCard","instalar","disclaimer","resetRow"];
+
+  // Muestra los pasos del sistema que está usando la persona y deja los del
+  // otro a un toque, porque el link se comparte entre teléfonos distintos.
+  (function(){
+    var ua = navigator.userAgent || "";
+    var esIphone = /iPhone|iPad|iPod/i.test(ua);
+    var mostrar = function(iphone){
+      $("pasosIphone").classList.toggle("hidden", !iphone);
+      $("pasosAndroid").classList.toggle("hidden", iphone);
+      $("otroSistema").innerHTML = iphone
+        ? '¿Es un Android? <a href="#" id="verOtro">Ver los pasos de Chrome</a>.'
+        : '¿Es un iPhone? <a href="#" id="verOtro">Ver los pasos de Safari</a>.';
+      $("verOtro").addEventListener("click", function(e){ e.preventDefault(); mostrar(!iphone); });
+    };
+    mostrar(esIphone);
+  })();
 
   function render(){
     if(!state){
