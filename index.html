@@ -379,6 +379,18 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     </summary>
     <div class="det-body">
       <p class="verdict mine" id="yourCost"></p>
+
+      <div class="balance">
+        <div class="field">
+          <label for="fDiamantes">Diamantes que tenés en la cuenta</label>
+          <div class="balance-row">
+            <input type="number" id="fDiamantes" min="0" step="1" inputmode="numeric" placeholder="los que te muestra el juego">
+            <button class="btn-primary btn-sm" id="btnDiamantes">Guardar</button>
+          </div>
+        </div>
+        <p class="verdict" id="recarga"></p>
+      </div>
+
       <div class="scroll-x">
         <table>
           <thead><tr><th>Skin</th><th>De una</th><th>Con el plan</th><th>Ahorro</th></tr></thead>
@@ -513,6 +525,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       var s = JSON.parse(raw);
       if(!s.claimed) s.claimed = {};
       if(typeof s.saldo === "undefined") s.saldo = null;
+      if(typeof s.diamantes === "undefined") s.diamantes = null;
       return s;
     }catch(e){}
     return null;
@@ -858,6 +871,25 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     if(cm.real && cm.base > 0) mine += " Los " + cm.base + " cristales que ya tenías no te cuestan nada más.";
     $("yourCost").innerHTML = mine;
 
+    // Cuánto hay que recargar de verdad: lo que falta gastar menos lo que ya
+    // hay en la cuenta. Distinto de "te quedan por gastar", que ignora el saldo.
+    var tieneDia = (typeof state.diamantes === "number" && state.diamantes >= 0);
+    var recargar = tieneDia ? Math.max(0, faltaTotal - state.diamantes) : null;
+    var rc = $("recarga");
+    if(!tieneDia){
+      rc.className = "verdict";
+      rc.innerHTML = "Poné cuántos diamantes tenés y te digo cuántos te falta <b>recargar</b>.";
+    } else if(recargar > 0){
+      rc.className = "verdict bad";
+      rc.innerHTML = "Con los " + state.diamantes + "💎 que tenés, te falta recargar <b>~" +
+        recargar + "💎</b> para llegar al final del plan.";
+    } else {
+      rc.className = "verdict good";
+      rc.innerHTML = "Con los " + state.diamantes + "💎 que tenés <b>no necesitás recargar</b>: te sobran ~" +
+        (state.diamantes - faltaTotal) + "💎.";
+    }
+    if(document.activeElement !== $("fDiamantes")) $("fDiamantes").value = tieneDia ? state.diamantes : "";
+
     var cb = "", ahorroActual = 0;
     GOAL_ORDER.forEach(function(k){
       var o = GOALS[k];
@@ -872,9 +904,13 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
         '<td class="n save">'+(ahorro>0?"−"+ahorro:"—")+'</td></tr>';
     });
     $("costBody").innerHTML = cb;
-    $("costSummary").textContent = ahorroActual > 0
-      ? ("Te quedan ~" + faltaTotal + "💎 por gastar · ahorro ~" + ahorroActual + "💎")
-      : ("Te quedan ~" + faltaTotal + "💎 por gastar");
+    $("costSummary").textContent = (recargar !== null)
+      ? (recargar > 0
+          ? ("Recargá ~" + recargar + "💎 · te quedan ~" + faltaTotal + "💎 por gastar")
+          : ("No necesitás recargar · te quedan ~" + faltaTotal + "💎 por gastar"))
+      : (ahorroActual > 0
+          ? ("Te quedan ~" + faltaTotal + "💎 por gastar · ahorro ~" + ahorroActual + "💎")
+          : ("Te quedan ~" + faltaTotal + "💎 por gastar"));
   }
 
   function markWeek(idx){
@@ -912,7 +948,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     if(!ini || !fin){ err.textContent = "Poné las dos fechas del evento."; return; }
     if(dayDiff(parseISO(ini), parseISO(fin)) < 6){ err.textContent = "El evento tiene que durar al menos 7 días para que el método cierre."; return; }
     err.textContent = "";
-    state = {goal:goal, ini:ini, fin:fin, dias:{}, src:{vip:true, diario:true, mensual:true, semanal:false}, hora:"20:00", saldo:null, claimed:{}};
+    state = {goal:goal, ini:ini, fin:fin, dias:{}, src:{vip:true, diario:true, mensual:true, semanal:false}, hora:"20:00", saldo:null, claimed:{}, diamantes:null};
     currentWeek = null;
     save(); render();
     window.scrollTo({top:0, behavior:"smooth"});
@@ -935,6 +971,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     $("resetConfirm").classList.add("hidden");
     $("btnReset").classList.remove("hidden");
     $("fSaldo").value = "";
+    $("fDiamantes").value = "";
     renderGoals(null);
     render();
     window.scrollTo({top:0, behavior:"smooth"});
@@ -964,6 +1001,24 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   });
   $("fSaldo").addEventListener("keydown", function(e){
     if(e.key === "Enter"){ e.preventDefault(); $("btnSaldo").click(); }
+  });
+
+  $("btnDiamantes").addEventListener("click", function(){
+    if(!state) return;
+    var raw = $("fDiamantes").value.trim(), btn = this;
+    if(raw === ""){
+      state.diamantes = null;
+    } else {
+      var n = parseInt(raw, 10);
+      if(isNaN(n) || n < 0){ $("recarga").innerHTML = "Poné el número de diamantes tal como te lo muestra el juego."; return; }
+      state.diamantes = n;
+    }
+    save(); render();
+    btn.textContent = "Guardado \u2713";
+    setTimeout(function(){ btn.textContent = "Guardar"; }, 1500);
+  });
+  $("fDiamantes").addEventListener("keydown", function(e){
+    if(e.key === "Enter"){ e.preventDefault(); $("btnDiamantes").click(); }
   });
 
   $("btnCopy").addEventListener("click", function(){
