@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Planificador del metodo ahorrador para sacar una skin Collector o Lucky Box en Mobile Legends.">
+<meta name="theme-color" content="#f2f2f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f101c" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Plan Colector">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>&#128142;</text></svg>">
+<title>Plan Colector MLBB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap">
+
+<style>
+:root{
+  --bg:#f2f2f6;
+  --surface:#ffffff;
+  --surface-2:#eceaf2;
+  --line:#dcd9e6;
+  --ink:#1b1c2a;
+  --ink-2:#4a4b5f;
+  --muted:#5f6076;
+  --accent:#4740b0;
+  --accent-fill:#5f57dd;
+  --accent-soft:#e9e8fb;
+  --cyan:#0b6f80;
+  --cyan-fill:#28aec2;
+  --cyan-soft:#dff3f6;
+  --ok:#2c7a55;
+  --ok-soft:#dcf0e5;
+  --warn:#9c4a17;
+  --warn-soft:#fbe6d8;
+  --shadow:0 1px 2px rgba(27,28,42,.06), 0 8px 24px -12px rgba(27,28,42,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f101c; --surface:#191b2b; --surface-2:#21243a; --line:#2d3049;
+    --ink:#ecebf6; --ink-2:#b9bad0; --muted:#8b8da8;
+    --accent:#a49cff; --accent-fill:#6159e0; --accent-soft:#232145;
+    --cyan:#4fd0e3; --cyan-fill:#28aec2; --cyan-soft:#132a30;
+    --ok:#5cc48d; --ok-soft:#142a1f;
+    --warn:#e08b52; --warn-soft:#2c1c12;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f101c; --surface:#191b2b; --surface-2:#21243a; --line:#2d3049;
+  --ink:#ecebf6; --ink-2:#b9bad0; --muted:#8b8da8;
+  --accent:#a49cff; --accent-fill:#6159e0; --accent-soft:#232145;
+  --cyan:#4fd0e3; --cyan-fill:#28aec2; --cyan-soft:#132a30;
+  --ok:#5cc48d; --ok-soft:#142a1f;
+  --warn:#e08b52; --warn-soft:#2c1c12;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.45; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:480px;margin:0 auto;padding:14px 14px 40px;display:flex;flex-direction:column;gap:11px}
+
+h1,h2,h3,.num{font-family:"Chakra Petch","Figtree",sans-serif;font-weight:700;text-wrap:balance}
+h1{font-size:22px;line-height:1.1;margin:0;letter-spacing:-.01em}
+h2{font-size:14px;margin:0;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h3{font-size:16px;margin:0}
+p{margin:0}
+.num{font-variant-numeric:tabular-nums}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}
+.section{display:flex;flex-direction:column;gap:9px}
+
+/* ---- encabezado ---- */
+header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 2px 0}
+.eyebrow{font-family:"Chakra Petch",sans-serif;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);font-weight:600;display:block}
+.sub{color:var(--muted);font-size:12px;text-align:right;line-height:1.3;font-variant-numeric:tabular-nums}
+
+/* ---- botones ---- */
+button{font-family:inherit;font-size:15px;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:10px 13px;font-weight:600;transition:transform .08s ease}
+button:active{transform:scale(.985)}
+button:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
+.btn-primary{background:var(--accent-fill);color:#fff;border-color:transparent}
+.btn-ghost{background:transparent}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn-sm{font-size:13px;padding:8px 11px}
+.btn-danger{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.btn-link{display:block;text-align:center;text-decoration:none;padding:11px 13px;border-radius:10px;font-weight:600;font-size:15px;border:1px solid transparent}
+.btn-link:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
+.reset-confirm{display:flex;flex-direction:column;gap:7px;background:var(--surface);border:1px solid var(--warn);border-radius:11px;padding:11px;width:100%}
+
+/* ---- formularios ---- */
+.field{display:flex;flex-direction:column;gap:5px}
+label{font-size:13px;font-weight:600;color:var(--ink-2)}
+input[type="date"],input[type="time"],input[type="number"]{font-family:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);width:100%}
+input[type="number"]{flex:1;min-width:0;font-family:"Chakra Petch",sans-serif;font-weight:600;font-variant-numeric:tabular-nums}
+input:focus-visible{outline:2px solid var(--accent-fill);outline-offset:1px}
+
+.goal-grid{display:flex;flex-direction:column;gap:8px}
+.goal{display:flex;align-items:center;gap:12px;text-align:left;padding:11px 13px;width:100%;background:var(--surface-2);border:1.5px solid var(--line)}
+.goal[aria-pressed="true"]{border-color:var(--accent-fill);background:var(--accent-soft)}
+.goal .g-tiros{font-family:"Chakra Petch",sans-serif;font-size:21px;font-weight:700;color:var(--accent);min-width:42px;font-variant-numeric:tabular-nums}
+.goal .g-name{font-size:15px;font-weight:600;line-height:1.2}
+.goal .g-cost{font-size:12px;color:var(--muted);font-weight:500}
+
+/* ---- hoy ---- */
+.today{border-color:var(--accent-fill);border-width:1.5px}
+.today-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.today-date{font-family:"Chakra Petch",sans-serif;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600;white-space:nowrap}
+.task{display:flex;gap:9px;align-items:flex-start;font-size:14.5px;line-height:1.35}
+.task .dot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--cyan-fill);margin-top:7px}
+.task.key .dot{background:var(--accent-fill)}
+.cost-pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-family:"Chakra Petch",sans-serif;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.pill.dia{background:var(--cyan-soft);color:var(--cyan)}
+.pill.cri{background:var(--accent-soft);color:var(--accent)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* ---- cristales ---- */
+.balance-row{display:flex;gap:8px;align-items:stretch}
+.verdict{font-size:13.5px;line-height:1.4;color:var(--ink-2);background:var(--surface-2);border-radius:9px;padding:9px 11px}
+.verdict b{color:var(--ink)}
+.verdict.good{background:var(--ok-soft)}
+.verdict.bad{background:var(--warn-soft)}
+.verdict.mine{background:var(--accent-soft);color:var(--ink)}
+
+/* ---- progreso ---- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.stat{background:var(--surface-2);border-radius:9px;padding:8px 6px;text-align:center;display:flex;flex-direction:column;gap:1px}
+.stat .v{font-family:"Chakra Petch",sans-serif;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat .k{font-size:10.5px;color:var(--muted);letter-spacing:.02em}
+.bar{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent-fill);border-radius:999px;transition:width .3s ease}
+
+/* ---- carrusel de semanas ---- */
+.wtabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.wtabs::-webkit-scrollbar{display:none}
+.wtab{flex:none;font-family:"Chakra Petch",sans-serif;font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:999px;background:var(--surface-2);color:var(--muted);border:1px solid transparent;white-space:nowrap}
+.wtab[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-fill)}
+.wtab .wdone{color:var(--ok)}
+.weeks{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.weeks::-webkit-scrollbar{display:none}
+.week{flex:0 0 100%;min-width:0;scroll-snap-align:start;display:flex;flex-direction:column;gap:5px}
+.swipe-hint{font-size:11.5px;color:var(--muted);text-align:center;letter-spacing:.02em}
+
+/* ---- días ---- */
+.day{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border-radius:10px;background:var(--surface);border:1px solid var(--line);text-align:left;width:100%;font-weight:400}
+.day.is-today{border-color:var(--accent-fill);background:var(--accent-soft)}
+.day.is-done{background:var(--ok-soft);border-color:transparent}
+.day.is-late{border-color:var(--warn)}
+/* los días por venir se distinguen por el fondo, no bajando la opacidad:
+   atenuar el texto hacía imposible leer qué tocaba hacer */
+.day.is-future{background:var(--surface-2)}
+.day.is-done .d-title,.day.is-done .d-note{opacity:.75}
+.check{flex:none;width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface-2);display:grid;place-items:center;margin-top:1px}
+.day.is-done .check{background:var(--ok);border-color:var(--ok)}
+.day.is-done .check::after{content:"";width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg) translateY(-1px)}
+.d-body{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.d-top{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.d-n{font-family:"Chakra Petch",sans-serif;font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.d-date{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.d-acum{font-size:11px;color:var(--accent);font-weight:600;font-variant-numeric:tabular-nums;margin-left:auto}
+.d-title{font-size:14px;font-weight:600;line-height:1.25}
+.d-note{font-size:12px;color:var(--muted);line-height:1.3}
+.d-flag{font-size:11.5px;font-weight:600;color:var(--accent)}
+
+/* ---- colapsables ---- */
+details{background:var(--surface);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);overflow:hidden}
+summary{list-style:none;cursor:pointer;padding:13px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary:focus-visible{outline:2px solid var(--accent-fill);outline-offset:-2px}
+.sum-l{display:flex;flex-direction:column;gap:1px;min-width:0}
+.sum-t{font-family:"Chakra Petch",sans-serif;font-size:14.5px;font-weight:600}
+.sum-s{font-size:12px;color:var(--muted);line-height:1.3}
+.chev{flex:none;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-3px) rotate(45deg);transition:transform .18s ease}
+details[open] .chev{transform:translateY(2px) rotate(-135deg)}
+.det-body{padding:0 13px 13px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+
+/* ---- fuentes de cristales ---- */
+.src{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line)}
+.src:last-child{border-bottom:0;padding-bottom:0}
+.src:first-child{padding-top:0}
+.src-body{flex:1;display:flex;flex-direction:column;gap:1px;min-width:0}
+.src-name{font-size:14px;font-weight:600}
+.src-meta{font-size:12px;color:var(--muted);line-height:1.3}
+.tog{flex:none;width:40px;height:23px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);position:relative;padding:0;margin-top:2px}
+.tog::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:var(--muted);transition:transform .16s ease,background .16s ease}
+.tog[aria-pressed="true"]{background:var(--cyan-soft);border-color:var(--cyan-fill)}
+.tog[aria-pressed="true"]::after{transform:translateX(17px);background:var(--cyan-fill)}
+.claimed{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:3px;cursor:pointer}
+.claimed input{width:15px;height:15px;accent-color:var(--cyan-fill);margin:0}
+
+/* ---- tabla ---- */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+td.n{font-variant-numeric:tabular-nums;font-family:"Chakra Petch",sans-serif;font-weight:600}
+.save{color:var(--ok);font-weight:700}
+.scroll-x{overflow-x:auto}
+
+/* ---- varios ---- */
+.steps{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:4px;font-size:13.5px;color:var(--ink-2)}
+.reminder-box{background:var(--surface-2);border-radius:9px;padding:11px;font-size:13.5px;line-height:1.4;border:1px dashed var(--line)}
+.note{font-size:12px;color:var(--muted);line-height:1.4}
+.warn-body{font-size:13px;line-height:1.45;color:var(--ink-2)}
+.warn-body strong{color:var(--ink)}
+.hidden{display:none !important}
+footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important;scroll-behavior:auto !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span>
+      <span class="eyebrow">Método ahorrador</span>
+      <h1>Plan Colector</h1>
+    </span>
+    <span class="sub" id="subtitle"></span>
+  </header>
+
+  <!-- ===== SETUP ===== -->
+  <section class="card" id="setup">
+    <div class="section">
+      <h2>1 · Qué querés sacar</h2>
+      <div class="goal-grid" id="goalGrid"></div>
+    </div>
+    <div class="section">
+      <h2>2 · Cuándo corre el evento</h2>
+      <div class="field">
+        <label for="fIni">Primer día</label>
+        <input type="date" id="fIni">
+      </div>
+      <div class="field">
+        <label for="fFin">Último día</label>
+        <input type="date" id="fFin">
+      </div>
+    </div>
+    <button class="btn-primary" id="btnStart">Armar mi plan</button>
+    <p class="note" id="setupErr"></p>
+  </section>
+
+  <!-- ===== HOY ===== -->
+  <section class="card today hidden" id="todayCard">
+    <div class="today-head">
+      <h3 id="todayTitle">Hoy</h3>
+      <span class="today-date num" id="todayDate"></span>
+    </div>
+    <div class="section" id="todayTasks"></div>
+    <div class="cost-pills" id="todayCost"></div>
+    <button class="btn-primary" id="btnToday">Ya lo hice</button>
+  </section>
+
+  <!-- ===== CRISTALES (arriba) ===== -->
+  <section class="card hidden" id="crystalCard">
+    <div class="field">
+      <label for="fSaldo">Cristales de aurora que tenés ahora</label>
+      <div class="balance-row">
+        <input type="number" id="fSaldo" min="0" step="1" inputmode="numeric" placeholder="el número que muestra el juego">
+        <button class="btn-primary btn-sm" id="btnSaldo">Guardar</button>
+      </div>
+    </div>
+    <p class="verdict" id="verdict"></p>
+
+    <details id="srcDetails">
+      <summary>
+        <span class="sum-l">
+          <span class="sum-t">De dónde salen los cristales</span>
+          <span class="sum-s" id="srcSummary"></span>
+        </span>
+        <span class="chev"></span>
+      </summary>
+      <div class="det-body">
+        <div id="sources"></div>
+        <p class="note" id="saldoNote"></p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ===== PROGRESO ===== -->
+  <section class="card hidden" id="progressCard">
+    <div class="stats">
+      <div class="stat"><span class="v" id="sTiros">0</span><span class="k">tiros</span></div>
+      <div class="stat"><span class="v" id="sDias">0</span><span class="k">💎 gastados</span></div>
+      <div class="stat"><span class="v" id="sCris">0</span><span class="k">cristales al final</span></div>
+    </div>
+    <div class="bar"><i id="bar" style="width:0%"></i></div>
+  </section>
+
+  <!-- ===== PLAN (carrusel semanal) ===== -->
+  <section class="section hidden" id="planCard">
+    <div class="wtabs" id="wtabs"></div>
+    <div class="weeks" id="weeks"></div>
+    <p class="swipe-hint" id="swipeHint"></p>
+  </section>
+
+  <!-- ===== RECORDATORIO ===== -->
+  <details class="hidden" id="remindCard">
+    <summary>
+      <span class="sum-l">
+        <span class="sum-t">Aviso diario en el calendario</span>
+        <span class="sum-s">El tiro diario no se recupera. Agendalo una sola vez.</span>
+      </span>
+      <span class="chev"></span>
+    </summary>
+    <div class="det-body">
+      <div class="field">
+        <label for="fHora">A qué hora querés el aviso</label>
+        <input type="time" id="fHora" value="20:00">
+      </div>
+      <a class="btn-primary btn-link" id="lnkGcal" href="#" target="_blank" rel="noopener">Agendar en Google Calendar</a>
+      <p class="note" id="gcalNote"></p>
+      <div class="reminder-box" id="remindText"></div>
+      <div class="btn-row"><button id="btnCopy" class="btn-sm">Copiar el texto del evento</button></div>
+      <p class="note"><strong>Si usás el calendario del iPhone o cualquier otro</strong> —o preferís no pasar por el navegador—, creá el evento a mano una vez. Son 30 segundos:</p>
+      <ol class="steps">
+        <li>Calendario → evento nuevo a la hora que elegiste.</li>
+        <li>Repetir: <strong>todos los días</strong>, hasta el <strong id="gcalFin"></strong>.</li>
+        <li>Aviso: <strong>a la hora del evento</strong>.</li>
+        <li>Pegale el texto de arriba como título.</li>
+      </ol>
+    </div>
+  </details>
+
+  <!-- ===== COSTOS ===== -->
+  <details class="hidden" id="costCard">
+    <summary>
+      <span class="sum-l">
+        <span class="sum-t">Costos y ahorro</span>
+        <span class="sum-s" id="costSummary"></span>
+      </span>
+      <span class="chev"></span>
+    </summary>
+    <div class="det-body">
+      <p class="verdict mine" id="yourCost"></p>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Skin</th><th>De una</th><th>Con el plan</th><th>Ahorro</th></tr></thead>
+          <tbody id="costBody"></tbody>
+        </table>
+      </div>
+      <p class="note">La tabla compara las tres skins haciendo el método <strong>desde cero</strong>, en diamantes equivalentes (1 cristal ≈ 1 diamante), para que se vean parejas entre sí. El número de arriba es distinto: son los diamantes que te quedan por poner a vos, descontando lo que ya hiciste y los cristales que ya tenías guardados.</p>
+    </div>
+  </details>
+
+  <!-- ===== AVISO ===== -->
+  <details class="hidden" id="disclaimer">
+    <summary>
+      <span class="sum-l">
+        <span class="sum-t">Antes de arrancar</span>
+        <span class="sum-s">Confirmá los precios dentro del evento.</span>
+      </span>
+      <span class="chev"></span>
+    </summary>
+    <div class="det-body">
+      <p class="warn-body">En cada evento MLBB cambia los precios, los tokens y las tareas de la primera semana. Antes de arrancar, entrá al evento y confirmá que los tiros cuesten <strong>25💎 sueltos y 350💎 los 10</strong>, y que la skin salga <strong>720, 800 o 640 monedas</strong> según cuál sea. Si algo cambió, el plan te sirve igual como guía de ritmo, pero los números no van a dar.</p>
+    </div>
+  </details>
+
+  <div class="btn-row hidden" id="resetRow">
+    <button class="btn-ghost btn-sm" id="btnReset">Empezar de nuevo</button>
+    <div class="reset-confirm hidden" id="resetConfirm">
+      <span class="note">Se borra el plan y todos los días que marcaste.</span>
+      <div class="btn-row">
+        <button class="btn-sm btn-danger" id="btnResetYes">Sí, borrar todo</button>
+        <button class="btn-ghost btn-sm" id="btnResetNo">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Tu progreso se guarda solo en este teléfono.</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var KEY = "mlbb-plan-colector-v1";
+
+  var GOALS = {
+    nueva:   {id:"nueva",   tiros:72, monedas:720, name:"Collector del mes",     hint:"la nueva, recién salida", solo:3500},
+    vuelve:  {id:"vuelve",  tiros:80, monedas:800, name:"Collector que vuelve",  hint:"las de regreso al evento", solo:4000},
+    lucky:   {id:"lucky",   tiros:64, monedas:640, name:"Lucky Box",             hint:"la más barata de las tres", solo:3000}
+  };
+  var GOAL_ORDER = ["nueva","vuelve","lucky"];
+
+  var SOURCES = [
+    {id:"vip",     name:"Pase VIP",                 meta:"300 cristales de una + 2 tokens del evento", one:300, rate:0,  dia:0},
+    {id:"diario",  name:"Paquete diario de 10💎",   meta:"entre 10 y 50 cristales por día (promedio 23)", one:0, rate:23, dia:10},
+    {id:"mensual", name:"Paquete mensual de 99💎",  meta:"entre 120 y 300 cristales, una vez al mes", one:200, rate:0, dia:99},
+    {id:"semanal", name:"Pases semanales",          meta:"hasta 10 cristales por día en el paquete de elección", one:0, rate:10, dia:0}
+  ];
+
+  var COST_TIRO = 25, COST_X10 = 350, CRIS_TIRO = 50, CRIS_X10 = 500;
+
+  var state = load();
+  var currentWeek = null; // se conserva entre re-renders para no volver a la semana 1
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(!raw) return null;
+      var s = JSON.parse(raw);
+      if(!s.claimed) s.claimed = {};
+      if(typeof s.saldo === "undefined") s.saldo = null;
+      return s;
+    }catch(e){}
+    return null;
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+  function parseISO(s){ var p = String(s).split("-"); return new Date(+p[0], +p[1]-1, +p[2]); }
+  function toISO(d){ var m=d.getMonth()+1, dd=d.getDate(); return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(dd<10?"0":"")+dd; }
+  function addDays(d,n){ var x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+  function dayDiff(a,b){ return Math.round((b-a)/86400000); }
+  function today0(){ var t=new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+  var MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  function fmt(d){ return d.getDate()+" "+MESES[d.getMonth()]; }
+
+  // Modelo: día 1 son 17 tiros (1 tiro por 10 + 1 suelto), después 1 tiro por
+  // día, +2 llaves (a los 20 y 40 tiros) y +4 tokens de la primera semana.
+  // Los cristales se guardan y se queman todos el último día.
+  function buildPlan(){
+    var ini = parseISO(state.ini), fin = parseISO(state.fin);
+    var D = dayDiff(ini, fin) + 1;
+    var goal = GOALS[state.goal];
+    var c20 = Math.min(4, D-1);
+    var c500 = Math.min(6, D-1);
+    var c40 = Math.max(c500+1, Math.min(Math.round(D*2/3), D-1));
+    var acumTiros = 0, plan = [];
+
+    for(var i=1;i<=D;i++){
+      var day = {n:i, date:addDays(ini,i-1), tasks:[], tiros:0, dia:0, cris:0, flag:"", note:""};
+
+      if(i===1){
+        day.title = "Arranque: acá se hace la fuerza";
+        // cada token del evento vale un tiro: por eso el día 1 suma 17 y no 11
+        day.tasks = [
+          {t:"1 tiro por 10 (350💎) → <b>10 tiros</b>"},
+          {t:"1 tiro por 1 (25💎) → <b>1 tiro</b>"},
+          {t:"Token por iniciar sesión → <b>1 tiro</b>", key:true},
+          {t:"Activá el pase VIP: 2 tokens → <b>2 tiros</b> (+300 cristales)", key:true},
+          {t:"Token por gastar 100💎 en el evento → <b>1 tiro</b>", key:true},
+          {t:"2 tokens por gastar 250💎 en el evento → <b>2 tiros</b>", key:true}
+        ];
+        day.tiros = 17; day.dia = COST_X10 + COST_TIRO;
+        day.note = "11 tiros pagados + 6 que te dan los tokens = 17. El tiro por 10 lo podés correr a cualquier día de la primera semana, pero el tiro diario arranca hoy sí o sí.";
+      } else if(i===D){
+        var falta = Math.max(0, goal.tiros - acumTiros);
+        var n10 = Math.floor(falta/10), n1 = falta - n10*10;
+        day.title = "Día final: quemá todos los cristales";
+        if(n10>0) day.tasks.push({t:n10+" "+(n10===1?"tiro":"tiros")+" por 10 · "+(n10*CRIS_X10)+" cristales", key:true});
+        if(n1>0)  day.tasks.push({t:n1+" "+(n1===1?"tiro suelto":"tiros sueltos")+" · "+(n1*CRIS_TIRO)+" cristales", key:true});
+        if(falta<=0) day.tasks.push({t:"Ya llegaste al objetivo antes de hoy. Guardá los cristales para el próximo evento.", key:true});
+        day.tiros = falta;
+        day.cris = n10*CRIS_X10 + n1*CRIS_TIRO;
+        day.note = "Sale igual gastar en tiros por 10 que sueltos: 50 cristales por tiro en los dos casos.";
+      } else {
+        day.title = "Tiro diario (25💎)";
+        day.tasks = [{t:"1 tiro por 1 · 25💎 → <b>1 tiro</b>"}];
+        day.tiros = 1; day.dia = COST_TIRO;
+        if(i<=7) day.note = "Semana 1: las tareas de gastar diamantes NO cuentan con cristales de aurora. Tienen que ser diamantes.";
+        if(i===c20){ day.tasks.push({t:"Llave por llegar a 20 tiros acumulados → <b>1 tiro</b>", key:true}); day.tiros += 1; day.flag = "Llave · 20 tiros"; }
+        if(i===c500){ day.tasks.push({t:"3 tokens por gastar 500💎 en el evento → <b>3 tiros</b>", key:true}); day.tiros += 3; day.flag = "3 tokens · 500💎"; }
+        if(i===c40){ day.tasks.push({t:"Llave por llegar a 40 tiros acumulados → <b>1 tiro</b>", key:true}); day.tiros += 1; day.flag = "Llave · 40 tiros"; }
+      }
+
+      acumTiros += day.tiros;
+      day.acumTiros = acumTiros;
+      plan.push(day);
+    }
+    return {plan:plan, D:D, goal:goal};
+  }
+
+  // Con saldo real sólo proyectamos lo que falta farmear desde mañana hasta el
+  // último día, más los paquetes de una vez que todavía no se reclamaron.
+  function crystalMath(D, todayN){
+    var one = 0, rate = 0, dia = 0;
+    var real = (typeof state.saldo === "number" && state.saldo >= 0);
+    var dias = D;
+    if(real) dias = Math.max(0, D - Math.max(0, Math.min(todayN, D)));
+
+    SOURCES.forEach(function(s){
+      if(!state.src[s.id]) return;
+      var pendiente = !real || !state.claimed[s.id];
+      if(s.one && pendiente) one += s.one;
+      rate += s.rate;
+      dia += s.dia * (s.rate>0 ? dias : (pendiente ? 1 : 0));
+    });
+
+    var farm = one + rate*dias;
+    var base = real ? state.saldo : 0;
+    var mid = base + farm;
+    return {
+      mid:mid, low:Math.round(base + farm*0.7), high:Math.round(base + farm*1.15),
+      dia:dia, real:real, base:base, farm:farm, dias:dias
+    };
+  }
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  function renderGoals(sel){
+    var g = $("goalGrid"); g.innerHTML = "";
+    GOAL_ORDER.forEach(function(k){
+      var o = GOALS[k];
+      var b = document.createElement("button");
+      b.className = "goal"; b.type = "button";
+      b.setAttribute("aria-pressed", sel===k ? "true" : "false");
+      b.innerHTML = '<span class="g-tiros num">'+o.tiros+'</span>'+
+        '<span><span class="g-name">'+o.name+'</span><br>'+
+        '<span class="g-cost">'+o.monedas+' monedas · '+o.hint+'</span></span>';
+      b.addEventListener("click", function(){ renderGoals(k); g.dataset.sel = k; });
+      g.appendChild(b);
+    });
+    if(sel) g.dataset.sel = sel;
+  }
+
+  function taskHTML(t){
+    return '<div class="task'+(t.key?" key":"")+'"><span class="dot"></span><span>'+t.t+'</span></div>';
+  }
+
+  function dayHTML(d, todayN){
+    var done = !!state.dias[d.n];
+    var cls = "day";
+    if(done) cls += " is-done";
+    else if(d.n === todayN) cls += " is-today";
+    else if(d.n < todayN) cls += " is-late";
+    else cls += " is-future";
+    return '<button type="button" class="'+cls+'" data-day="'+d.n+'">'+
+      '<span class="check"></span>'+
+      '<span class="d-body">'+
+        '<span class="d-top"><span class="d-n">DÍA '+d.n+'</span><span class="d-date num">'+fmt(d.date)+'</span>'+
+        '<span class="d-acum num">+'+d.tiros+' → '+d.acumTiros+' tiros</span>'+
+        (!done && d.n<todayN ? '<span class="pill warn">atrasado</span>' : '')+'</span>'+
+        '<span class="d-title">'+d.title+'</span>'+
+        (d.flag ? '<span class="d-flag">★ '+d.flag+'</span>' : '')+
+        (d.note ? '<span class="d-note">'+d.note+'</span>' : '')+
+      '</span></button>';
+  }
+
+  var ALL = ["todayCard","crystalCard","progressCard","planCard","remindCard","costCard","disclaimer","resetRow"];
+
+  function render(){
+    if(!state){
+      $("setup").classList.remove("hidden");
+      ALL.forEach(function(id){ $(id).classList.add("hidden"); });
+      $("subtitle").textContent = "";
+      return;
+    }
+    $("setup").classList.add("hidden");
+    ALL.forEach(function(id){ $(id).classList.remove("hidden"); });
+
+    var built = buildPlan(), plan = built.plan, D = built.D, goal = built.goal;
+    var t0 = today0(), ini = parseISO(state.ini);
+    var todayN = dayDiff(ini, t0) + 1;
+
+    $("subtitle").innerHTML = goal.name + "<br>" + goal.tiros + " tiros · " + D + " días";
+
+    // --- hoy ---
+    if(todayN >= 1 && todayN <= D){
+      var d = plan[todayN-1];
+      $("todayTitle").textContent = d.title;
+      $("todayDate").textContent = "Día " + d.n + " · " + fmt(d.date);
+      $("todayTasks").innerHTML = d.tasks.map(taskHTML).join("");
+      var pills = [];
+      if(d.dia) pills.push('<span class="pill dia">'+d.dia+'💎</span>');
+      if(d.cris) pills.push('<span class="pill cri">'+d.cris+' cristales</span>');
+      pills.push('<span class="pill">+'+d.tiros+' tiros</span>');
+      $("todayCost").innerHTML = pills.join("");
+      var done = !!state.dias[d.n];
+      $("btnToday").classList.remove("hidden");
+      $("btnToday").textContent = done ? "✓ Hecho — desmarcar" : "Ya lo hice";
+      $("btnToday").className = done ? "btn-ghost" : "btn-primary";
+      $("btnToday").onclick = function(){ toggleDay(d.n); };
+    } else if(todayN < 1){
+      $("todayTitle").textContent = "Todavía no arrancó";
+      $("todayDate").textContent = "Faltan " + (1-todayN) + " días";
+      $("todayTasks").innerHTML = taskHTML({t:"El evento empieza el "+fmt(ini)+". Agendá el aviso ahora así no te olvidás del día 1, que es el más importante.", key:true});
+      $("todayCost").innerHTML = "";
+      $("btnToday").classList.add("hidden");
+    } else {
+      $("todayTitle").textContent = "El evento terminó";
+      $("todayDate").textContent = fmt(parseISO(state.fin));
+      $("todayTasks").innerHTML = taskHTML({t:"Espero que la hayas sacado. Tocá «Empezar de nuevo» para armar el plan del próximo evento.", key:true});
+      $("todayCost").innerHTML = "";
+      $("btnToday").classList.add("hidden");
+    }
+
+    // --- progreso ---
+    var tiros = 0, diaGast = 0;
+    plan.forEach(function(d){ if(state.dias[d.n]){ tiros += d.tiros; diaGast += d.dia; } });
+    var cm = crystalMath(D, todayN);
+    $("sTiros").textContent = tiros + "/" + goal.tiros;
+    $("sDias").textContent = diaGast;
+    $("sCris").textContent = "~" + cm.mid;
+    $("bar").style.width = Math.min(100, Math.round(tiros/goal.tiros*100)) + "%";
+
+    // --- cristales ---
+    var finalDay = plan[D-1];
+    var falta = finalDay.cris;
+    var v = $("verdict"), msg;
+    if(cm.mid >= falta){
+      v.className = "verdict good";
+      msg = "Necesitás <b>" + falta + "</b> el último día y vas a llegar con <b>~" + cm.mid + "</b>. Te alcanza.";
+      var sobra = cm.mid - falta, convert = Math.floor(sobra / CRIS_TIRO);
+      if(convert >= 3){
+        var desde = Math.max(8, D - convert);
+        var ahorra = Math.min(convert, D - desde) * COST_TIRO;
+        msg += " Te sobran ~" + sobra + ": desde el día " + desde + " podés pagar el tiro diario con cristales y ahorrarte otros " + ahorra + "💎.";
+      }
+    } else {
+      v.className = "verdict bad";
+      msg = "Necesitás <b>" + falta + "</b> el último día y vas a llegar con <b>~" + cm.mid + "</b>. Te faltan ~" + (falta-cm.mid) + ": prendé otra fuente o tapá la diferencia con " + (falta-cm.mid) + "💎.";
+    }
+    v.innerHTML = msg;
+
+    $("srcSummary").textContent = cm.real
+      ? ("Tenés " + cm.base + " + ~" + cm.farm + " por farmear · " + cm.dia + "💎 en paquetes")
+      : ("~" + cm.mid + " cristales estimados · " + cm.dia + "💎 en paquetes");
+
+    var sh = "";
+    SOURCES.forEach(function(s){
+      var on = !!state.src[s.id];
+      var costo = s.rate>0 ? (s.dia? s.dia+"💎 por día" : "gratis con el pase") : (s.dia? s.dia+"💎 una vez" : "");
+      var aporte = s.rate>0 ? ("~"+(s.rate*cm.dias)+" cristales en "+cm.dias+(cm.dias===1?" día":" días")) : ("+"+s.one+" cristales");
+      var claim = (cm.real && s.one && on)
+        ? '<label class="claimed"><input type="checkbox" data-claim="'+s.id+'"'+(state.claimed[s.id]?" checked":"")+'> ya está contado en mi saldo</label>'
+        : '';
+      sh += '<div class="src">'+
+        '<button type="button" class="tog" aria-pressed="'+on+'" data-src="'+s.id+'" aria-label="'+s.name+'"></button>'+
+        '<span class="src-body"><span class="src-name">'+s.name+'</span>'+
+        '<span class="src-meta">'+s.meta+'</span>'+
+        '<span class="src-meta">'+aporte+(costo?" · "+costo:"")+'</span>'+claim+'</span></div>';
+    });
+    $("sources").innerHTML = sh;
+    Array.prototype.forEach.call($("sources").querySelectorAll(".tog"), function(el){
+      el.addEventListener("click", function(){
+        state.src[el.dataset.src] = !state.src[el.dataset.src];
+        save(); render();
+      });
+    });
+    Array.prototype.forEach.call($("sources").querySelectorAll("[data-claim]"), function(el){
+      el.addEventListener("change", function(){
+        state.claimed[el.dataset.claim] = el.checked;
+        save(); render();
+      });
+    });
+
+    if(document.activeElement !== $("fSaldo")) $("fSaldo").value = cm.real ? state.saldo : "";
+    $("saldoNote").textContent = cm.real
+      ? ("Saldo cargado el " + fmt(parseISO(state.saldoDia)) + ". Actualizalo cuando quieras y el cálculo se reajusta.")
+      : "Sin tu saldo real el cálculo usa el promedio del método.";
+
+    // --- plan en semanas ---
+    // se guarda ANTES de tocar el DOM: reemplazar el HTML dispara un scroll a 0
+    // que si no llegaría a pisar la semana en la que estabas parado
+    var weekTarget = currentWeek;
+    var semanas = [];
+    for(var i=0;i<plan.length;i+=7) semanas.push(plan.slice(i, i+7));
+    var wh = "", th = "";
+    semanas.forEach(function(sem, idx){
+      var hechos = sem.filter(function(d){ return state.dias[d.n]; }).length;
+      var tieneHoy = sem.some(function(d){ return d.n === todayN; });
+      th += '<button type="button" class="wtab" data-week="'+idx+'" aria-selected="'+(tieneHoy?"true":"false")+'">'+
+        'Sem '+(idx+1)+' <span class="'+(hechos===sem.length?"wdone":"")+'">'+hechos+'/'+sem.length+'</span></button>';
+      wh += '<div class="week" data-week="'+idx+'">'+ sem.map(function(d){ return dayHTML(d, todayN); }).join("") +'</div>';
+    });
+    $("wtabs").innerHTML = th;
+    $("weeks").innerHTML = wh;
+    $("swipeHint").textContent = semanas.length > 1 ? "Deslizá para ver las otras semanas" : "";
+
+    var weeks = $("weeks");
+    Array.prototype.forEach.call(weeks.querySelectorAll(".day"), function(el){
+      el.addEventListener("click", function(){ toggleDay(+el.dataset.day); });
+    });
+    Array.prototype.forEach.call($("wtabs").querySelectorAll(".wtab"), function(el){
+      el.addEventListener("click", function(){ goToWeek(+el.dataset.week); });
+    });
+    weeks.onscroll = function(){
+      markWeek(Math.round(weeks.scrollLeft / Math.max(1, weeks.clientWidth)));
+    };
+
+    // la primera vez abre en la semana de hoy; después mantiene dónde estabas.
+    // Se restaura de forma síncrona: el evento scroll que dispara el cambio de
+    // HTML llega después y lee la posición ya corregida.
+    if(weekTarget === null) weekTarget = Math.floor((Math.max(1, Math.min(todayN, D)) - 1) / 7);
+    goToWeek(Math.max(0, Math.min(semanas.length-1, weekTarget)), true);
+
+    // --- recordatorio: evento diario recurrente en el calendario ---
+    var titulo = "MLBB — tiro diario (" + goal.name + ")";
+    $("remindText").textContent = titulo;
+
+    var hora = (state.hora || "20:00").split(":");
+    var desde = (t0 > ini) ? t0 : ini;                  // hoy, o el día 1 si todavía no arrancó
+    var evIni = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate(), +hora[0], +hora[1], 0);
+    var evFin = new Date(evIni.getTime() + 15*60000);
+    var stamp = function(d){
+      var p = function(n){ return (n<10?"0":"")+n; };
+      return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"T"+p(d.getHours())+p(d.getMinutes())+"00";
+    };
+    var hasta = state.fin.replace(/-/g,"");
+    $("lnkGcal").href = "https://calendar.google.com/calendar/render?action=TEMPLATE"+
+      "&text=" + encodeURIComponent(titulo) +
+      "&dates=" + stamp(evIni) + "/" + stamp(evFin) +
+      "&recur=" + encodeURIComponent("RRULE:FREQ=DAILY;UNTIL="+hasta) +
+      "&details=" + encodeURIComponent("Un tiro por día hasta el " + fmt(parseISO(state.fin)) + ". Abrí el plan y marcá el día cuando lo hagas.");
+    // Probado: los enlaces intent:// de Android no salen del sandbox del
+    // artifact — dejan una pantalla en blanco. Para abrir la app nativa hay
+    // que ir por un archivo .ics, que la página no puede entregar.
+    $("gcalNote").innerHTML = "Crea un evento que se repite todos los días hasta el " + fmt(parseISO(state.fin)) +
+      ", con aviso a esa hora. Se agenda una sola vez.<br><strong>Se abre en el navegador</strong>, no en la app. " +
+      "Tocá Guardar ahí y el evento se sincroniza con tu cuenta: el aviso te llega igual desde la app del teléfono.";
+    $("gcalFin").textContent = fmt(parseISO(state.fin));
+
+    // --- costos ---
+    // los paquetes del evento completo salen de las fuentes que tenga prendidas,
+    // no de un número fijo, para que la tabla no contradiga la sección de cristales
+    var paqFull = 0;
+    SOURCES.forEach(function(s){
+      if(state.src[s.id]) paqFull += s.dia * (s.rate>0 ? D : 1);
+    });
+
+    // lo que le queda por gastar a ESTA persona: sólo diamantes de verdad
+    // (los cristales ya farmeados no se vuelven a pagar)
+    var faltaTiros = 0;
+    plan.forEach(function(d){ if(!state.dias[d.n]) faltaTiros += d.dia; });
+    var faltaTotal = faltaTiros + cm.dia;
+    var mine = "Te quedan por gastar <b>~" + faltaTotal + "💎</b> — " + faltaTiros +
+      " en los tiros que faltan y " + cm.dia + " en paquetes.";
+    if(cm.real && cm.base > 0) mine += " Los " + cm.base + " cristales que ya tenías no te cuestan nada más.";
+    $("yourCost").innerHTML = mine;
+
+    var cb = "", ahorroActual = 0;
+    GOAL_ORDER.forEach(function(k){
+      var o = GOALS[k];
+      var need = o.tiros - (21 + D);
+      var n10 = Math.max(0, Math.floor(need/10)), n1 = Math.max(0, need - n10*10);
+      var cris = n10*CRIS_X10 + n1*CRIS_TIRO;
+      var total = COST_X10 + COST_TIRO*(D-1) + paqFull + cris;
+      var ahorro = o.solo - total;
+      if(k === state.goal) ahorroActual = ahorro;
+      cb += '<tr'+(k===state.goal?' style="background:var(--accent-soft)"':'')+'>'+
+        '<td>'+o.name+'</td><td class="n">'+o.solo+'</td><td class="n">'+total+'</td>'+
+        '<td class="n save">'+(ahorro>0?"−"+ahorro:"—")+'</td></tr>';
+    });
+    $("costBody").innerHTML = cb;
+    $("costSummary").textContent = ahorroActual > 0
+      ? ("Te quedan ~" + faltaTotal + "💎 por gastar · ahorro ~" + ahorroActual + "💎")
+      : ("Te quedan ~" + faltaTotal + "💎 por gastar");
+  }
+
+  function markWeek(idx){
+    currentWeek = idx;
+    Array.prototype.forEach.call($("wtabs").querySelectorAll(".wtab"), function(el){
+      el.setAttribute("aria-selected", (+el.dataset.week === idx) ? "true" : "false");
+    });
+  }
+
+  function goToWeek(idx, instant){
+    var weeks = $("weeks");
+    var prev = weeks.style.scrollBehavior;
+    if(instant) weeks.style.scrollBehavior = "auto";
+    weeks.scrollLeft = idx * weeks.clientWidth;
+    if(instant) weeks.style.scrollBehavior = prev;
+    markWeek(idx);
+  }
+
+  function toggleDay(n){
+    state.dias[n] = !state.dias[n];
+    save(); render();
+  }
+
+  // ---------- setup ----------
+  renderGoals(null);
+  var t = today0();
+  $("fIni").value = toISO(t);
+  $("fFin").value = toISO(addDays(t, 29));
+
+  $("btnStart").addEventListener("click", function(){
+    var goal = $("goalGrid").dataset.sel;
+    var ini = $("fIni").value, fin = $("fFin").value;
+    var err = $("setupErr");
+    if(!goal){ err.textContent = "Elegí primero qué skin querés sacar."; return; }
+    if(!ini || !fin){ err.textContent = "Poné las dos fechas del evento."; return; }
+    if(dayDiff(parseISO(ini), parseISO(fin)) < 6){ err.textContent = "El evento tiene que durar al menos 7 días para que el método cierre."; return; }
+    err.textContent = "";
+    state = {goal:goal, ini:ini, fin:fin, dias:{}, src:{vip:true, diario:true, mensual:true, semanal:false}, hora:"20:00", saldo:null, claimed:{}};
+    currentWeek = null;
+    save(); render();
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+
+  // confirmación dentro de la página: en el iframe del artifact los diálogos
+  // nativos (confirm) están bloqueados y devuelven false sin avisar
+  $("btnReset").addEventListener("click", function(){
+    $("btnReset").classList.add("hidden");
+    $("resetConfirm").classList.remove("hidden");
+  });
+  $("btnResetNo").addEventListener("click", function(){
+    $("resetConfirm").classList.add("hidden");
+    $("btnReset").classList.remove("hidden");
+  });
+  $("btnResetYes").addEventListener("click", function(){
+    state = null;
+    currentWeek = null;
+    try{ localStorage.removeItem(KEY); }catch(e){}
+    $("resetConfirm").classList.add("hidden");
+    $("btnReset").classList.remove("hidden");
+    $("fSaldo").value = "";
+    renderGoals(null);
+    render();
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+
+  // al cambiar la hora hay que rearmar el enlace del calendario
+  $("fHora").addEventListener("change", function(){
+    if(!state) return;
+    state.hora = this.value; save();
+    $("remindCard").open = true;
+    render();
+  });
+
+  $("btnSaldo").addEventListener("click", function(){
+    if(!state) return;
+    var raw = $("fSaldo").value.trim(), btn = this;
+    if(raw === ""){
+      state.saldo = null; state.claimed = {};
+    } else {
+      var n = parseInt(raw, 10);
+      if(isNaN(n) || n < 0){ $("saldoNote").textContent = "Poné el número de cristales tal como te lo muestra el juego."; $("srcDetails").open = true; return; }
+      state.saldo = n; state.saldoDia = toISO(today0());
+    }
+    save(); render();
+    btn.textContent = "Guardado ✓";
+    setTimeout(function(){ btn.textContent = "Guardar"; }, 1500);
+  });
+  $("fSaldo").addEventListener("keydown", function(e){
+    if(e.key === "Enter"){ e.preventDefault(); $("btnSaldo").click(); }
+  });
+
+  $("btnCopy").addEventListener("click", function(){
+    var txt = $("remindText").textContent, btn = this;
+    var done = function(){ btn.textContent = "Copiado ✓"; setTimeout(function(){ btn.textContent = "Copiar recordatorio"; }, 1600); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done, function(){ btn.textContent = "No se pudo copiar"; });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy"); done(); }catch(e){ btn.textContent = "No se pudo copiar"; }
+      document.body.removeChild(ta);
+    }
+  });
+
+  if(state && state.hora) $("fHora").value = state.hora;
+  render();
+})();
+</script>
+
+</body>
+</html>
