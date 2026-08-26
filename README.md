@@ -1,4 +1,4 @@
-# Plan Colector MLBB
+# Plan Collector MLBB
 
 Planificador del método ahorrador para sacar una skin Collector o Lucky Box
 en Mobile Legends sin gastar de más.

@@ -8,9 +8,9 @@
 <meta name="theme-color" content="#0f101c" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Plan Colector">
+<meta name="apple-mobile-web-app-title" content="Plan Collector">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>&#128142;</text></svg>">
-<title>Plan Colector MLBB</title>
+<title>Plan Collector MLBB</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap">
@@ -209,18 +209,50 @@ td.n{font-variant-numeric:tabular-nums;font-family:"Chakra Petch",sans-serif;fon
 .note{font-size:12px;color:var(--muted);line-height:1.4}
 .warn-body{font-size:13px;line-height:1.45;color:var(--ink-2)}
 .warn-body strong{color:var(--ink)}
+/* ---- pantalla de carga ----
+   Tapa el salto de tipografía mientras bajan las fuentes. La animación de
+   respaldo la esconde a los 3s aunque el JS no llegue a correr, así nunca
+   puede quedar tapando la página. */
+#splash{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--bg);
+  transition:opacity .35s ease;animation:splash-respaldo 0s 3s forwards}
+#splash.oculto{opacity:0;pointer-events:none}
+@keyframes splash-respaldo{to{opacity:0;visibility:hidden;pointer-events:none}}
+.splash-in{display:flex;flex-direction:column;align-items:center;gap:13px}
+.gema{width:52px;height:52px;animation:latir 1.2s ease-in-out infinite}
+@keyframes latir{0%,100%{transform:scale(1) rotate(-3deg)}50%{transform:scale(1.1) rotate(3deg)}}
+.splash-nombre{font-family:"Chakra Petch","Figtree",sans-serif;font-weight:600;font-size:12px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.splash-barra{width:110px;height:3px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.splash-barra>i{display:block;height:100%;width:38%;border-radius:99px;background:var(--accent-fill);
+  animation:correr 1.15s ease-in-out infinite}
+@keyframes correr{0%{transform:translateX(-115%)}100%{transform:translateX(310%)}}
+@media (prefers-reduced-motion:reduce){.gema,.splash-barra>i{animation:none}}
+
 .hidden{display:none !important}
 footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important;scroll-behavior:auto !important}}
 </style>
 </head>
 <body>
+<div id="splash" role="status" aria-label="Cargando">
+  <div class="splash-in">
+    <svg class="gema" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M20 6h24l14 16-26 36L6 22z" fill="var(--accent-fill)" opacity=".9"/>
+      <path d="M20 6l6 16-20 0z" fill="var(--accent)" opacity=".55"/>
+      <path d="M44 6l-6 16 20 0z" fill="var(--accent)" opacity=".55"/>
+      <path d="M26 22h12l-6 36z" fill="#fff" opacity=".22"/>
+    </svg>
+    <span class="splash-nombre">Plan Collector</span>
+    <span class="splash-barra"><i></i></span>
+  </div>
+</div>
+
 <div class="wrap">
 
   <header>
     <span>
       <span class="eyebrow">Método ahorrador</span>
-      <h1>Plan Colector</h1>
+      <h1>Plan Collector</h1>
     </span>
     <span class="sub" id="subtitle"></span>
   </header>
@@ -860,6 +892,29 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 
   if(state && state.hora) $("fHora").value = state.hora;
   render();
+
+  // ---- pantalla de carga ----
+  // Si las fuentes ya están en caché no se muestra nada: en las visitas
+  // siguientes la página abre directo, sin hacerte esperar por un adorno.
+  (function(){
+    var splash = $("splash");
+    if(!splash) return;
+    var listas = document.fonts &&
+      document.fonts.check('700 16px "Chakra Petch"') &&
+      document.fonts.check('400 16px "Figtree"');
+    if(listas){ splash.remove(); return; }
+
+    var esperar = function(ms){ return new Promise(function(r){ setTimeout(r, ms); }); };
+    var fuentes = (document.fonts && document.fonts.ready) || Promise.resolve();
+
+    Promise.all([
+      esperar(420),                          // que no parpadee si carga instantáneo
+      Promise.race([fuentes, esperar(2000)]) // tope: nunca esperar más de 2s
+    ]).then(function(){
+      splash.classList.add("oculto");
+      setTimeout(function(){ if(splash.parentNode) splash.remove(); }, 400);
+    });
+  })();
 })();
 </script>
 
