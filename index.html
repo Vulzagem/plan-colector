@@ -132,6 +132,9 @@ input:focus-visible{outline:2px solid var(--accent-fill);outline-offset:1px}
 .verdict.bad{background:var(--warn-soft)}
 .verdict.mine{background:var(--accent-soft);color:var(--ink)}
 .verdict.money{background:var(--cyan-soft);color:var(--ink)}
+.verdict.atrasados{background:var(--surface-2);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.verdict.atrasados b{color:var(--ink)}
+.nota-pase{display:block;margin-top:6px;font-size:12.5px;color:var(--muted);line-height:1.35}
 
 /* ---- progreso ---- */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
@@ -397,6 +400,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 
   <!-- ===== PLAN (carrusel semanal) ===== -->
   <section class="section hidden" id="planCard">
+    <p class="verdict atrasados hidden" id="avisoAtrasados"></p>
     <div class="wtabs" id="wtabs"></div>
     <div class="weeks" id="weeks"></div>
     <p class="swipe-hint" id="swipeHint"></p>
@@ -760,7 +764,9 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
         day.title = "Tiro diario (25💎)";
         day.tasks = [{t:"1 tiro por 1 · 25💎 → <b>1 tiro</b>"}];
         day.tiros = 1; day.dia = COST_TIRO;
-        if(i<=7) day.note = "Semana 1: las tareas de gastar diamantes NO cuentan con cristales de aurora. Tienen que ser diamantes.";
+        // la aclaración de la semana 1 va una sola vez (en el primer día
+        // diario), no repetida en los seis — ocupaba media pantalla del carrusel
+        if(i === 2) day.note = "Ojo en la primera semana: las tareas de gastar diamantes NO cuentan con cristales de aurora, tienen que ser diamantes.";
       }
 
       // las llaves y tokens caen el día en que se cruza el umbral
@@ -1108,9 +1114,21 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     });
 
     if(document.activeElement !== $("fSaldo")) $("fSaldo").value = cm.real ? state.saldo : "";
-    $("saldoNote").textContent = cm.real
-      ? ("Saldo cargado el " + fmt(parseISO(state.saldoDia)) + ". Actualizalo cuando quieras y el cálculo se reajusta.")
-      : "Sin tu saldo real el cálculo usa el promedio del método.";
+    // El saldo es una foto de un momento: no crece solo. Si quedó viejo, todo
+    // el cálculo se desactualiza en silencio — así que se avisa.
+    if(cm.real){
+      var diasSaldo = state.saldoDia ? dayDiff(parseISO(state.saldoDia), t0) : 0;
+      if(diasSaldo >= 7){
+        $("saldoNote").innerHTML = "<b>Cargaste este saldo hace " + diasSaldo + " días.</b> " +
+          "Como no se actualiza solo, fijate el número en el juego y volvé a guardarlo — " +
+          "el plan y lo que falta recargar se reajustan con eso.";
+      } else {
+        $("saldoNote").textContent = "Saldo cargado el " + fmt(parseISO(state.saldoDia)) +
+          ". Actualizalo cuando quieras y el cálculo se reajusta.";
+      }
+    } else {
+      $("saldoNote").textContent = "Sin tu saldo real el cálculo usa el promedio del método.";
+    }
 
     // --- plan en semanas ---
     // se guarda ANTES de tocar el DOM: reemplazar el HTML dispara un scroll a 0
@@ -1129,6 +1147,28 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     $("wtabs").innerHTML = th;
     $("weeks").innerHTML = wh;
     $("swipeHint").textContent = semanas.length > 1 ? "Deslizá para ver las otras semanas" : "";
+
+    // --- días atrasados: ponerlos al día de una, y enmarcar que no es un drama ---
+    // Arrancar a mitad de mes llena la primera semana de carteles rojos sin
+    // explicar que el plan ya se recalculó solo. Acá se dice, y se ofrece el
+    // atajo para no tener que tildar día por día.
+    var atrasados = [];
+    plan.forEach(function(d){ if(!state.dias[d.n] && d.n < todayN) atrasados.push(d.n); });
+    var av = $("avisoAtrasados");
+    av.classList.toggle("hidden", atrasados.length === 0);
+    if(atrasados.length){
+      av.innerHTML = "<span>Tenés <b>" + atrasados.length + "</b> " +
+        (atrasados.length === 1 ? "día sin marcar" : "días sin marcar") +
+        ". Si ya los hiciste en el juego, ponelos al día de una; el plan de arriba ya está calculado contando esos tiros.</span>";
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "btn-sm";
+      b.textContent = "Marcar los " + atrasados.length + " hasta hoy";
+      b.addEventListener("click", function(){
+        atrasados.forEach(function(n){ state.dias[n] = true; });
+        save(); render();
+      });
+      av.appendChild(b);
+    }
 
     var weeks = $("weeks");
     Array.prototype.forEach.call(weeks.querySelectorAll(".day"), function(el){
@@ -1211,10 +1251,37 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var pais = state.pais || "ar", P = PRECIOS[pais];
     $("fPais").value = pais;
     var objetivo = (recargar !== null) ? recargar : faltaTotal;
-    var combo = mejorCombo(objetivo, P.packs);
+
+    // El Pase Semanal es la fuente más barata por diamante (~46% menos que el
+    // mejor paquete), así que sin él la recomendación casi nunca era la más
+    // barata de verdad. Pero da 220💎 REPARTIDOS: 80 al comprarlo y 20 por día
+    // durante 7. Apilados, los días se suman — 7 pases tardan 49 días en
+    // entregar todo. Por eso sólo se cuentan los que llegan a completarse
+    // antes de que termine el plan; si no, recomendaría diamantes que nunca
+    // ibas a recibir a tiempo.
+    // Es el único pase incluido: de los otros tres no tengo el rendimiento.
+    var pasePrecio = null;
+    P.pases.forEach(function(x){ if(x.n === "Pase Semanal") pasePrecio = x.p; });
+    var diasHastaFin = Math.max(0, D - Math.max(0, todayN - 1));
+    var maxPases = pasePrecio ? Math.min(10, Math.floor(diasHastaFin / 7)) : 0;
+
+    // se prueba cada cantidad de pases y se completa con paquetes; gana la
+    // combinación más barata
+    var combo = null;
+    for(var kp = 0; kp <= maxPases; kp++){
+      var restante = objetivo - kp * 220;
+      var sub = restante > 0 ? mejorCombo(restante, P.packs) : {costo:0, diamantes:0, cuenta:{}};
+      if(!sub) continue;
+      var costoTot = kp * pasePrecio + sub.costo;
+      if(!combo || costoTot < combo.costo){
+        combo = {costo:costoTot, diamantes: kp*220 + sub.diamantes, cuenta:sub.cuenta, pases:kp};
+      }
+    }
+    if(objetivo <= 0) combo = null;
 
     if(combo){
-      var partes = [];
+      var partes = [], usaPase = combo.pases > 0;
+      if(usaPase) partes.push((combo.pases > 1 ? combo.pases + "× " : "") + "Pase Semanal");
       Object.keys(combo.cuenta).forEach(function(i){
         var q = combo.cuenta[i];
         partes.push((q > 1 ? q + "× " : "") + P.packs[i].d + "💎");
@@ -1222,7 +1289,8 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       $("comboSugerido").innerHTML =
         "Para juntar los <b>" + objetivo + "💎</b> que te faltan, lo más barato en " + P.pais +
         " es " + partes.join(" + ") + " — te quedan " + combo.diamantes + "💎 por <b>" +
-        plata(combo.costo, pais) + "</b>.";
+        plata(combo.costo, pais) + "</b>." +
+        (usaPase ? " <span class=\"nota-pase\">Cada Pase Semanal da 220💎 repartidos: 80 al comprarlo y 20 por día durante una semana, entrando al juego cada día. Como el plan gasta 25💎 por día, el ritmo acompaña — sólo se cuentan los pases que alcanzan a completarse antes de que termine el plan.</span>" : "");
       $("preciosSummary").textContent = objetivo + "💎 ≈ " + plata(combo.costo, pais) + " en " + P.pais;
     } else {
       $("comboSugerido").innerHTML = "No necesitás recargar: con lo que tenés en la cuenta llegás al final del plan.";
