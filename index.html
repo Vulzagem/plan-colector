@@ -111,8 +111,14 @@ input:focus-visible{outline:2px solid var(--accent-fill);outline-offset:1px}
 .goal .g-cost{font-size:12px;color:var(--muted);font-weight:500}
 
 /* ---- hoy ---- */
-.today{border-color:var(--accent-fill);border-width:1.5px}
-.today.done{border-color:var(--ok)}
+.today{border-color:var(--accent-fill);border-width:1.5px;padding:16px;gap:12px;
+  box-shadow:0 1px 2px rgba(27,28,42,.06), 0 10px 30px -14px var(--accent-fill)}
+.today.done{border-color:var(--ok);box-shadow:0 1px 2px rgba(27,28,42,.06), 0 10px 30px -14px var(--ok)}
+.today h3{font-size:20px;letter-spacing:-.015em}
+.today .task{font-size:15px}
+/* los colapsables de saldo van un escalón más abajo que "Hoy" */
+details.saldo>summary{padding:12px 13px}
+details.saldo .sum-t{font-size:14px}
 .today-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .today-date{font-family:"Chakra Petch",sans-serif;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600;white-space:nowrap}
 .task{display:flex;gap:9px;align-items:flex-start;font-size:14.5px;line-height:1.35}
@@ -137,12 +143,19 @@ input:focus-visible{outline:2px solid var(--accent-fill);outline-offset:1px}
 .nota-pase{display:block;margin-top:6px;font-size:12.5px;color:var(--muted);line-height:1.35}
 
 /* ---- progreso ---- */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.stat{background:var(--surface-2);border-radius:9px;padding:8px 6px;text-align:center;display:flex;flex-direction:column;gap:1px}
+.prog{display:flex;align-items:center;gap:14px}
+.anillo{position:relative;flex:none;width:104px;height:104px}
+.anillo svg{width:100%;height:100%;transform:rotate(-90deg)}
+.anillo circle{fill:none;stroke-width:9;stroke-linecap:round}
+.anillo .pista{stroke:var(--surface-2)}
+.anillo .avance{stroke:var(--accent-fill);stroke-dasharray:270;stroke-dashoffset:270;transition:stroke-dashoffset .5s ease}
+.anillo-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.anillo-txt .num{font-family:"Chakra Petch",sans-serif;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em}
+.anillo-txt .lbl{font-size:10.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.prog-lado{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.stat{background:var(--surface-2);border-radius:9px;padding:9px 11px;display:flex;flex-direction:column;gap:1px}
 .stat .v{font-family:"Chakra Petch",sans-serif;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
 .stat .k{font-size:10.5px;color:var(--muted);letter-spacing:.02em}
-.bar{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
-.bar>i{display:block;height:100%;background:var(--accent-fill);border-radius:999px;transition:width .3s ease}
 
 /* ---- carrusel de semanas ---- */
 .wtabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
@@ -160,6 +173,13 @@ input:focus-visible{outline:2px solid var(--accent-fill);outline-offset:1px}
 .day.is-today{border-color:var(--accent-fill);background:var(--accent-soft)}
 .day.is-done{background:var(--ok-soft);border-color:transparent}
 .day.is-late{border-color:var(--warn)}
+/* el día 1 y el final son de otra naturaleza que un tiro diario: una franja
+   lateral los hace visibles al deslizar sin tener que leerlos */
+.day.is-clave{border-left:3px solid var(--accent-fill);padding-left:9px}
+.day.is-clave .d-title{color:var(--accent)}
+.day.is-hito{border-left:3px solid var(--cyan-fill);padding-left:9px}
+.day.is-done.is-clave{border-left-color:var(--ok)}
+.day.is-done.is-hito{border-left-color:var(--ok)}
 /* los días por venir se distinguen por el fondo, no bajando la opacidad:
    atenuar el texto hacía imposible leer qué tocaba hacer */
 .day.is-future{background:var(--surface-2)}
@@ -315,43 +335,63 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     <button class="btn-primary" id="btnToday">Ya lo hice</button>
   </section>
 
-  <!-- ===== CRISTALES (arriba) ===== -->
-  <section class="card hidden" id="crystalCard">
-    <div class="field">
-      <label for="fSaldo">Cristales de aurora que tenés ahora</label>
-      <div class="balance-row">
-        <input type="number" id="fSaldo" min="0" step="1" inputmode="numeric" placeholder="el número que muestra el juego">
-        <button class="btn-primary btn-sm" id="btnSaldo">Guardar</button>
+  <!-- ===== CRISTALES ===== -->
+  <!-- Colapsables: el saldo se toca una vez por semana, no todos los días.
+       El resumen deja el dato clave a la vista sin abrir nada. -->
+  <details class="hidden saldo" id="crystalCard">
+    <summary>
+      <span class="sum-l">
+        <span class="sum-t">Cristales de aurora</span>
+        <span class="sum-s" id="crystalSummary"></span>
+      </span>
+      <span class="chev"></span>
+    </summary>
+    <div class="det-body">
+      <div class="field">
+        <label for="fSaldo">Los que tenés ahora</label>
+        <div class="balance-row">
+          <input type="number" id="fSaldo" min="0" step="1" inputmode="numeric" placeholder="el número que muestra el juego">
+          <button class="btn-primary btn-sm" id="btnSaldo">Guardar</button>
+        </div>
       </div>
-    </div>
-    <p class="verdict" id="verdict"></p>
+      <p class="verdict" id="verdict"></p>
 
-    <details id="srcDetails">
-      <summary>
-        <span class="sum-l">
-          <span class="sum-t">De dónde salen los cristales</span>
-          <span class="sum-s" id="srcSummary"></span>
-        </span>
-        <span class="chev"></span>
-      </summary>
-      <div class="det-body">
-        <div id="sources"></div>
-        <p class="note" id="saldoNote"></p>
-      </div>
-    </details>
-  </section>
+      <details id="srcDetails">
+        <summary>
+          <span class="sum-l">
+            <span class="sum-t">De dónde salen los cristales</span>
+            <span class="sum-s" id="srcSummary"></span>
+          </span>
+          <span class="chev"></span>
+        </summary>
+        <div class="det-body">
+          <div id="sources"></div>
+          <p class="note" id="saldoNote"></p>
+        </div>
+      </details>
+    </div>
+  </details>
 
   <!-- ===== CUÁNTO RECARGAR ===== -->
-  <section class="card hidden" id="diamondCard">
-    <div class="field">
-      <label for="fDiamantes">Diamantes que tenés en la cuenta</label>
-      <div class="balance-row">
-        <input type="number" id="fDiamantes" min="0" step="1" inputmode="numeric" placeholder="los que te muestra el juego">
-        <button class="btn-primary btn-sm" id="btnDiamantes">Guardar</button>
+  <details class="hidden saldo" id="diamondCard">
+    <summary>
+      <span class="sum-l">
+        <span class="sum-t">Diamantes y recarga</span>
+        <span class="sum-s" id="diamondSummary"></span>
+      </span>
+      <span class="chev"></span>
+    </summary>
+    <div class="det-body">
+      <div class="field">
+        <label for="fDiamantes">Los que tenés en la cuenta</label>
+        <div class="balance-row">
+          <input type="number" id="fDiamantes" min="0" step="1" inputmode="numeric" placeholder="los que te muestra el juego">
+          <button class="btn-primary btn-sm" id="btnDiamantes">Guardar</button>
+        </div>
       </div>
+      <p class="verdict" id="recarga"></p>
     </div>
-    <p class="verdict" id="recarga"></p>
-  </section>
+  </details>
 
   <!-- ===== PRECIOS POR PAÍS ===== -->
   <details class="hidden" id="precios">
@@ -390,12 +430,22 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 
   <!-- ===== PROGRESO ===== -->
   <section class="card hidden" id="progressCard">
-    <div class="stats">
-      <div class="stat"><span class="v" id="sTiros">0</span><span class="k">tiros</span></div>
-      <div class="stat"><span class="v" id="sDias">0</span><span class="k">💎 gastados</span></div>
-      <div class="stat"><span class="v" id="sCris">0</span><span class="k">cristales al final</span></div>
+    <div class="prog">
+      <div class="anillo">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="pista" cx="50" cy="50" r="43"></circle>
+          <circle class="avance" id="anilloAvance" cx="50" cy="50" r="43"></circle>
+        </svg>
+        <span class="anillo-txt">
+          <span class="num" id="sTiros">0</span>
+          <span class="lbl">tiros</span>
+        </span>
+      </div>
+      <div class="prog-lado">
+        <div class="stat"><span class="v" id="sDias">0</span><span class="k">💎 gastados</span></div>
+        <div class="stat"><span class="v" id="sCris">0</span><span class="k">cristales al final</span></div>
+      </div>
     </div>
-    <div class="bar"><i id="bar" style="width:0%"></i></div>
   </section>
 
   <!-- ===== PLAN (carrusel semanal) ===== -->
@@ -741,7 +791,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
           {t:"Token por gastar 100💎 en el evento → <b>1 tiro</b>", key:true},
           {t:"2 tokens por gastar 250💎 en el evento → <b>2 tiros</b>", key:true}
         ];
-        day.tiros = 17; day.dia = COST_X10 + COST_TIRO;
+        day.tiros = 17; day.dia = COST_X10 + COST_TIRO; day.clave = true;
         day.note = "11 tiros pagados + 6 que te dan los tokens = 17. El pase VIP también te da 300 cristales — contalos en «De dónde salen los cristales», no acá. El tiro por 10 lo podés correr a cualquier día de la primera semana, pero el tiro diario arranca hoy sí o sí.";
       } else if(i===n){
         // los cristales cubren lo que puedan; el resto de los tiros se paga
@@ -756,7 +806,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
         day.tiros = falta;
         day.cris = conCris * CRIS_TIRO;
         day.dia = conDia * COST_TIRO;
-        day.conCris = conCris; day.conDia = conDia;
+        day.conCris = conCris; day.conDia = conDia; day.clave = true;
         day.note = conDia > 0
           ? "Los cristales no llegan a cubrir todo el día final, así que los últimos tiros se pagan con diamantes."
           : "Sale igual gastar en tiros por 10 que sueltos: 50 cristales por tiro en los dos casos.";
@@ -925,6 +975,10 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     else if(d.n === todayN) cls += " is-today";
     else if(d.n < todayN) cls += " is-late";
     else cls += " is-future";
+    // el arranque y el día final no son un tiro diario más; los días con
+    // llave o tokens tampoco. Se marcan para poder distinguirlos al deslizar.
+    if(d.clave) cls += " is-clave";
+    else if(d.flag) cls += " is-hito";
     return '<button type="button" class="'+cls+'" data-day="'+d.n+'" aria-pressed="'+done+'" aria-label="Día '+d.n+', '+d.title+(done?', hecho':'')+'">'+
       '<span class="check"></span>'+
       '<span class="d-body">'+
@@ -987,7 +1041,10 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     $("sTiros").textContent = tiros + "/" + goal.tiros;
     $("sDias").textContent = diaGast;
     $("sCris").textContent = "~" + cm.mid;
-    $("bar").style.width = Math.min(100, Math.round(tiros/goal.tiros*100)) + "%";
+    // el anillo: 2πr con r=43 ≈ 270, que es el stroke-dasharray del CSS
+    var frac = Math.min(1, tiros / goal.tiros);
+    $("anilloAvance").style.strokeDashoffset = (270 * (1 - frac)).toFixed(1);
+    $("anilloAvance").style.stroke = frac >= 1 ? "var(--ok)" : "var(--accent-fill)";
 
     // ahorro de la skin actual vs. comprarla de una — se reusa en el cierre
     // y en la tarjeta de recarga, así el número de plata real nunca aparece solo
@@ -1080,6 +1137,13 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       if(sobra >= CRIS_TIRO) msg += " Te sobran ~" + sobra + " para el próximo evento.";
     }
     v.innerHTML = msg;
+
+    // resumen del colapsable: el estado en una línea, sin tener que abrirlo
+    $("crystalSummary").textContent = cm.real
+      ? (cm.base + " ahora · " + (finalDay.conDia > 0
+          ? "no alcanzan para el día final"
+          : "te alcanzan, sobran ~" + Math.max(0, cm.mid - finalDay.cris)))
+      : "Sin cargar — el cálculo usa el promedio del método";
 
     $("srcSummary").textContent = cm.real
       ? ("Tenés " + cm.base + " + ~" + cm.farm + " por farmear · " + cm.dia + "💎 en paquetes")
@@ -1245,6 +1309,12 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       rc.innerHTML = "Con los " + state.diamantes + "💎 que tenés <b>no necesitás recargar</b>: te sobran ~" +
         (state.diamantes - faltaTotal) + "💎." + ahorroTag;
     }
+    $("diamondSummary").textContent = !tieneDia
+      ? "Sin cargar — poné los tuyos y te digo cuánto recargar"
+      : (recargar > 0
+          ? (state.diamantes + " ahora · recargá ~" + recargar + "💎")
+          : (state.diamantes + " ahora · no necesitás recargar"));
+
     if(document.activeElement !== $("fDiamantes")) $("fDiamantes").value = tieneDia ? state.diamantes : "";
 
     // --- precios por país ---
