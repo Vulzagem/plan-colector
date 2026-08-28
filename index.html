@@ -725,13 +725,16 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
           {t:"1 tiro por 1 (25💎) → <b>1 tiro</b>"},
           {t:"Token por iniciar sesión → <b>1 tiro</b>", key:true}
         ];
-        if(vipOn) day.tasks.push({t:"Activá el pase VIP (300💎) → <b>2 tiros</b> + 300 cristales", key:true});
+        if(vipOn) day.tasks.push({t:"Activá el pase VIP → <b>2 tiros</b> + 300 cristales", key:true});
         day.tasks.push({t:"Token por gastar 100💎 en el evento → <b>1 tiro</b>", key:true});
         day.tasks.push({t:"2 tokens por gastar 250💎 en el evento → <b>2 tiros</b>", key:true});
         day.tiros = vipOn ? 17 : 15;
-        day.dia = COST_X10 + COST_TIRO + (vipOn ? 300 : 0);
+        // los 300💎 del pase se cobran una sola vez, en "paquetes" (crystalMath),
+        // igual que el resto de las fuentes de cristales — NO acá, porque si no
+        // se cuentan dos veces. El gasto del día 1 es sólo el de los tiros.
+        day.dia = COST_X10 + COST_TIRO;
         day.note = vipOn
-          ? "11 tiros pagados + 6 que te dan los tokens = 17 (300💎 del pase VIP incluidos). El tiro por 10 lo podés correr a cualquier día de la primera semana, pero el tiro diario arranca hoy sí o sí."
+          ? "11 tiros pagados + 6 que te dan los tokens = 17. Los 300💎 del pase VIP se cobran en \u00abDe dónde salen los cristales\u00bb, no acá. El tiro por 10 lo podés correr a cualquier día de la primera semana, pero el tiro diario arranca hoy sí o sí."
           : "11 tiros pagados + 4 que te dan los tokens = 15, sin el pase VIP. El tiro por 10 lo podés correr a cualquier día de la primera semana, pero el tiro diario arranca hoy sí o sí.";
       } else if(i===n){
         // los cristales cubren lo que puedan; el resto de los tiros se paga
