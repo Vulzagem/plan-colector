@@ -632,7 +632,9 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   var FULL_TIRO = 50, FULL_X10 = 500;
 
   var state = load();
-  var currentWeek = null; // se conserva entre re-renders para no volver a la semana 1
+  var currentWeek = null;   // se conserva entre re-renders para no volver a la semana 1
+  var yaFestejado = false;  // ya se festejó este "completo"
+  var primerRender = true;  // en la primera pintura nunca se festeja
 
   function load(){
     try{
@@ -991,7 +993,20 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var ahorroActual = deUnaActual - costoPlan(D);
 
     // --- hoy ---
+    // El festejo se dispara al CRUZAR el objetivo estando vos mirando, no al
+    // abrir la página con el plan ya terminado — de ahí el `primerRender`.
     var completo = tiros >= goal.tiros;
+    if(!completo){
+      yaFestejado = false;   // si desmarcás y volvés a completar, festeja otra vez
+    } else if(!yaFestejado){
+      yaFestejado = true;
+      if(!primerRender){
+        setTimeout(function(){
+          $("todayCard").scrollIntoView({behavior:"smooth", block:"center"});
+          confeti();
+        }, 120);
+      }
+    }
     $("todayCard").classList.toggle("done", completo);
     if(completo){
       $("todayTitle").textContent = "¡La sacaste! 🎉";
@@ -1266,6 +1281,8 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     $("costSummary").textContent = ahorroTabla > 0
       ? ("Ahorro desde cero: ~" + ahorroTabla + "💎 con " + goal.name)
       : ("Comparativa de las tres skins, desde cero");
+
+    primerRender = false;
   }
 
   function markWeek(idx){
@@ -1287,6 +1304,71 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   function toggleDay(n){
     state.dias[n] = !state.dias[n];
     save(); render();
+  }
+
+  // Confeti sobre un canvas suelto: no entra en el layout, no toca el scroll
+  // y se borra solo al terminar. Se dispara UNA vez, al cruzar el objetivo —
+  // no cada vez que abrís la página con el plan ya completo.
+  function confeti(){
+    if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // si la pestaña está en segundo plano no hay nada que mostrar, y además
+    // requestAnimationFrame no corre: el canvas quedaría colgado para siempre
+    if(document.hidden) return;
+    var ancho = innerWidth || document.documentElement.clientWidth;
+    var alto  = innerHeight || document.documentElement.clientHeight;
+    if(!ancho || !alto) return;
+
+    var lienzo = document.createElement("canvas");
+    lienzo.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60";
+    document.body.appendChild(lienzo);
+
+    var ctx = lienzo.getContext("2d");
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    lienzo.width = ancho * dpr;
+    lienzo.height = alto * dpr;
+    ctx.scale(dpr, dpr);
+
+    // red de seguridad: si el navegador deja de dar cuadros (pestaña al
+    // fondo, pantalla apagada), el bucle nunca llega a borrar el canvas.
+    // Este timeout lo saca igual — la misma lección que la pantalla de carga.
+    var limpieza = setTimeout(function(){ if(lienzo.parentNode) lienzo.remove(); }, 5000);
+
+    var colores = ["#6159e0", "#a49cff", "#28aec2", "#5cc48d", "#e5a63c"];
+    var piezas = [];
+    for(var i = 0; i < 90; i++){
+      piezas.push({
+        x: ancho * (0.15 + Math.random() * 0.7),
+        y: -20 - Math.random() * alto * 0.4,
+        vx: (Math.random() - 0.5) * 3,
+        vy: 2.5 + Math.random() * 3.5,
+        giro: Math.random() * Math.PI,
+        vGiro: (Math.random() - 0.5) * 0.25,
+        w: 5 + Math.random() * 5,
+        h: 8 + Math.random() * 6,
+        color: colores[(Math.random() * colores.length) | 0]
+      });
+    }
+
+    var arranque = performance.now(), DURACION = 2600;
+    (function cuadro(ahora){
+      var t = ahora - arranque;
+      if(t > DURACION){ clearTimeout(limpieza); lienzo.remove(); return; }
+      ctx.clearRect(0, 0, ancho, alto);
+      var opacidad = t > DURACION - 600 ? (DURACION - t) / 600 : 1;
+      piezas.forEach(function(p){
+        p.x += p.vx; p.y += p.vy; p.giro += p.vGiro;
+        p.vy += 0.045;                       // gravedad
+        p.vx *= 0.995;
+        ctx.save();
+        ctx.globalAlpha = opacidad;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.giro);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
+      });
+      requestAnimationFrame(cuadro);
+    })(arranque);
   }
 
   // ---------- setup ----------
