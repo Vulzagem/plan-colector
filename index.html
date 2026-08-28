@@ -556,7 +556,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   var GOAL_ORDER = ["nueva","vuelve","lucky"];
 
   var SOURCES = [
-    {id:"vip",     name:"Pase VIP",                 meta:"300 cristales de una, al activarlo el día 1", one:300, rate:0,  dia:300},
+    {id:"vip",     name:"Pase VIP",                 meta:"se activa una sola vez, el día 1 del evento", one:300, rate:0,  dia:300},
     {id:"diario",  name:"Paquete diario de 10💎",   meta:"entre 10 y 50 cristales por día (promedio 23)", one:0, rate:23, dia:10},
     {id:"mensual", name:"Paquete mensual de 99💎",  meta:"entre 120 y 300 cristales, una vez al mes", one:200, rate:0, dia:99},
     {id:"semanal", name:"Pases semanales",          meta:"hasta 10 cristales por día en el paquete de elección", one:0, rate:10, dia:0}
@@ -956,7 +956,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var sh = "";
     SOURCES.forEach(function(s){
       var on = !!state.src[s.id];
-      var costo = s.rate>0 ? (s.dia? s.dia+"💎 por día" : "gratis con el pase") : (s.dia? s.dia+"💎 una vez" : "");
+      var costo = s.rate>0 ? (s.dia? s.dia+"💎 por día" : "gratis con el pase") : (s.dia? s.dia+"💎, pago único" : "");
       var aporte = s.rate>0 ? ("~"+(s.rate*cm.dias)+" cristales en "+cm.dias+(cm.dias===1?" día":" días")) : ("+"+s.one+" cristales");
       var claim = (cm.real && s.one && on)
         ? '<label class="claimed"><input type="checkbox" data-claim="'+s.id+'"'+(state.claimed[s.id]?" checked":"")+'> ya está contado en mi saldo</label>'
