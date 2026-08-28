@@ -782,10 +782,23 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   function crystalMath(D, todayN){
     var one = 0, rate = 0, dia = 0;
     var real = (typeof state.saldo === "number" && state.saldo >= 0);
-    var dias = D;
+
+    // Dos conteos de "días que quedan", con propósitos distintos:
+    // - diasCosto: para lo que falta PAGAR (paquetes) — sigue las casillas
+    //   "Ya lo hice", igual que faltaTiros.
+    // - diasFarm: para lo que falta ACUMULAR de cristales — sigue el
+    //   calendario real (hoy), no las casillas. El saldo que cargaste es una
+    //   foto fija de un momento puntual; sólo crece cuando lo volvés a
+    //   guardar, nunca solo porque tildaste una tarea. Si esta cuenta
+    //   también siguiera las casillas, marcar un día sin actualizar el
+    //   saldo restaba esos cristales de la proyección en vez de darlos por
+    //   ya ganados — y el plan óptimo se iba estirando a medida que
+    //   avanzabas, justo al revés de lo esperado.
+    var diasCosto = D, diasFarm = D;
     if(real){
-      dias = 0;
-      for(var i=1; i<=D; i++){ if(!state.dias[i]) dias++; }
+      diasCosto = 0;
+      for(var i=1; i<=D; i++){ if(!state.dias[i]) diasCosto++; }
+      diasFarm = Math.max(0, D - Math.max(0, Math.min(todayN, D)));
     }
 
     SOURCES.forEach(function(s){
@@ -793,15 +806,15 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       var pendiente = !real || !state.claimed[s.id];
       if(s.one && pendiente) one += s.one;
       rate += s.rate;
-      dia += s.dia * (s.rate>0 ? dias : (pendiente ? 1 : 0));
+      dia += s.dia * (s.rate>0 ? diasCosto : (pendiente ? 1 : 0));
     });
 
-    var farm = one + rate*dias;
+    var farm = one + rate*diasFarm;
     var base = real ? state.saldo : 0;
     var mid = base + farm;
     return {
       mid:mid, low:Math.round(base + farm*0.7), high:Math.round(base + farm*1.15),
-      dia:dia, real:real, base:base, farm:farm, dias:dias
+      dia:dia, real:real, base:base, farm:farm, dias:diasCosto
     };
   }
 
