@@ -756,8 +756,8 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       }
 
       // las llaves y tokens caen el día en que se cruza el umbral
-      // los tres hitos pueden coincidir en el mismo día (con el pase VIP el
-      // gasto del día 1 ya pasa los 500💎), por eso las banderas se acumulan
+      // los tres hitos pueden coincidir en el mismo día (en planes cortos, al
+      // comprar tiros con cristales el último día), por eso las banderas se acumulan
       var flags = [];
       if(i===d20){ day.tasks.push({t:"Llave por llegar a 20 tiros acumulados → <b>1 tiro</b>", key:true}); day.tiros += 1; flags.push("Llave · 20 tiros"); }
       if(i===d500){ day.tasks.push({t:"3 tokens por gastar 500💎 en el evento → <b>3 tiros</b>", key:true}); day.tiros += 3; flags.push("3 tokens · 500💎"); }
@@ -1126,14 +1126,17 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       "La columna «equivale a» traduce el precio del pase a diamantes usando el paquete de mejor precio por diamante, " +
       "para que puedas ver si te conviene — no cuenta los diamantes que el pase devuelve día a día.";
 
-    // cada skin se compara con SU plan más corto posible, no con uno genérico
+    // cada skin se compara con SU plan más corto posible, no con uno genérico.
+    // "paq" usa crystalMath (mismo mecanismo que "yourCost"/"recarga") para que
+    // respete los días ya transcurridos y las fuentes marcadas "ya reclamadas"
+    // — antes recalculaba aparte con nk días completos y sin mirar `claimed`,
+    // y quedaba desincronizada de esas dos tarjetas.
     var cb = "", ahorroActual = 0;
     GOAL_ORDER.forEach(function(k){
       var o = GOALS[k];
       var nk = largoOptimo(Dtotal, todayN, o.tiros);
       var cris = simular(nk, o.tiros).comprados * CRIS_TIRO;
-      var paq = 0;
-      SOURCES.forEach(function(x){ if(state.src[x.id]) paq += x.dia * (x.rate>0 ? nk : 1); });
+      var paq = crystalMath(nk, todayN).dia;
       var total = COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, nk-2) + paq + cris;
       var ahorro = o.solo - total;
       if(k === state.goal) ahorroActual = ahorro;
