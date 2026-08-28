@@ -779,6 +779,17 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   // en vez de las casillas de "Ya lo hice" — así que marcar todos los días
   // como completados no bajaba el paquete diario/semanal a cero, aunque el
   // resto de la página (faltaTiros) sí lo hacía. Ahora usan la misma fuente.
+  // Costo TOTAL en paquetes de un plan de n días, sin mirar el progreso ni
+  // las casillas de "ya reclamado". Es lo que el plan cuesta de punta a
+  // punta — distinto de crystalMath().dia, que es lo que TE FALTA pagar.
+  // Los cálculos de costo total y de ahorro usan éste; los de "cuánto te
+  // queda por gastar / recargar" usan aquél.
+  function paqueteDesdeCero(n){
+    var p = 0;
+    SOURCES.forEach(function(s){ if(state.src[s.id]) p += s.dia * (s.rate>0 ? n : 1); });
+    return p;
+  }
+
   function crystalMath(D, todayN){
     var one = 0, rate = 0, dia = 0;
     var real = (typeof state.saldo === "number" && state.saldo >= 0);
@@ -913,8 +924,13 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 
     // ahorro de la skin actual vs. comprarla de una — se reusa en el cierre
     // y en la tarjeta de recarga, así el número de plata real nunca aparece solo
+    // El ahorro compara el costo TOTAL del plan contra comprarla de una, así
+    // que el paquete va completo (paqueteDesdeCero), no el que falta pagar
+    // (cm.dia). Con cm.dia el número se inflaba a medida que marcabas días:
+    // al completar el plan, el cálculo se olvidaba de los paquetes diarios
+    // que ya habías pagado y los contaba como si nunca hubieran costado nada.
     var crisActual = built.sim.comprados * CRIS_TIRO;
-    var ahorroActual = goal.solo - (COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, D-2) + cm.dia + crisActual);
+    var ahorroActual = goal.solo - (COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, D-2) + paqueteDesdeCero(D) + crisActual);
 
     // --- hoy ---
     var completo = tiros >= goal.tiros;
@@ -1173,11 +1189,6 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     // esta tabla los reutilizara, "día 1 + diarios + cristales" seguirían
     // siendo teóricos mientras que "paquetes" solo bajaría con tu progreso:
     // una mezcla que rompía la comparación a medida que avanzabas el plan.
-    function paqueteDesdeCero(n){
-      var p = 0;
-      SOURCES.forEach(function(s){ if(state.src[s.id]) p += s.dia * (s.rate>0 ? n : 1); });
-      return p;
-    }
     var cb = "", ahorroTabla = 0;
     GOAL_ORDER.forEach(function(k){
       var o = GOALS[k];
