@@ -1153,35 +1153,38 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       "La columna «equivale a» traduce el precio del pase a diamantes usando el paquete de mejor precio por diamante, " +
       "para que puedas ver si te conviene — no cuenta los diamantes que el pase devuelve día a día.";
 
-    // cada skin se compara con SU plan más corto posible, no con uno genérico.
-    // "paq" usa crystalMath (mismo mecanismo que "yourCost"/"recarga") para que
-    // respete los días ya transcurridos y las fuentes marcadas "ya reclamadas"
-    // — antes recalculaba aparte con nk días completos y sin mirar `claimed`,
-    // y quedaba desincronizada de esas dos tarjetas.
-    // ahorroActual ya se calculó arriba (se reusa en "hoy" y en la recarga);
-    // acá sólo se recalcula para las otras dos skins, con la misma fórmula
-    var cb = "";
+    // Esta tabla es la comparación "desde cero" (lo dice su propia nota más
+    // abajo): las tres skins con el método completo, como si arrancara hoy sin
+    // nada ya hecho. Por eso el paquete NO puede usar crystalMath ni "claimed"
+    // — esos dos ahora siguen tu progreso real (para yourCost/recarga), y si
+    // esta tabla los reutilizara, "día 1 + diarios + cristales" seguirían
+    // siendo teóricos mientras que "paquetes" solo bajaría con tu progreso:
+    // una mezcla que rompía la comparación a medida que avanzabas el plan.
+    function paqueteDesdeCero(n){
+      var p = 0;
+      SOURCES.forEach(function(s){ if(state.src[s.id]) p += s.dia * (s.rate>0 ? n : 1); });
+      return p;
+    }
+    var cb = "", ahorroTabla = 0;
     GOAL_ORDER.forEach(function(k){
       var o = GOALS[k];
-      var total, ahorro;
-      if(k === state.goal){
-        total = COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, D-2) + cm.dia + crisActual;
-        ahorro = ahorroActual;
-      } else {
-        var nk = largoOptimo(Dtotal, todayN, o.tiros);
-        var cris = simular(nk, o.tiros).comprados * CRIS_TIRO;
-        var paq = crystalMath(nk, todayN).dia;
-        total = COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, nk-2) + paq + cris;
-        ahorro = o.solo - total;
-      }
+      var nk = largoOptimo(Dtotal, todayN, o.tiros);
+      var cris = simular(nk, o.tiros).comprados * CRIS_TIRO;
+      var paq = paqueteDesdeCero(nk);
+      var total = COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, nk-2) + paq + cris;
+      var ahorro = o.solo - total;
+      if(k === state.goal) ahorroTabla = ahorro;
       cb += '<tr'+(k===state.goal?' style="background:var(--accent-soft)"':'')+'>'+
         '<td>'+o.name+'</td><td class="n">'+o.solo+'</td><td class="n">'+total+'</td>'+
         '<td class="n save">'+(ahorro>0?"−"+ahorro:"—")+'</td></tr>';
     });
     $("costBody").innerHTML = cb;
-    $("costSummary").textContent = ahorroActual > 0
-      ? ("Te quedan ~" + faltaTotal + "💎 por gastar · ahorro ~" + ahorroActual + "💎")
-      : ("Te quedan ~" + faltaTotal + "💎 por gastar");
+    // el resumen colapsado tiene que anticipar lo que hay ADENTRO de esta
+    // tarjeta (la comparación desde cero), no el ahorro real — ese ya se ve
+    // en "Ya ahorraste..." dentro de la tarjeta de recarga, más arriba
+    $("costSummary").textContent = ahorroTabla > 0
+      ? ("Ahorro desde cero: ~" + ahorroTabla + "💎 con " + goal.name)
+      : ("Comparativa de las tres skins, desde cero");
   }
 
   function markWeek(idx){
