@@ -448,7 +448,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
           <tbody id="costBody"></tbody>
         </table>
       </div>
-      <p class="note">La tabla compara las tres skins haciendo el método <strong>desde cero</strong>, en diamantes equivalentes (1 cristal ≈ 1 diamante), para que se vean parejas entre sí. El número de arriba es distinto: son los diamantes que te quedan por poner a vos, descontando lo que ya hiciste y los cristales que ya tenías guardados.</p>
+      <p class="note">«De una» es sacarla hoy mismo: el descuento diario vale una sola vez, así que el resto de los tiros va a 50💎 en lugar de 25. «Con el plan» son los diamantes que realmente ponés estirándolo en el tiempo — los cristales no se suman aparte porque salen de esos mismos paquetes. El número de arriba es distinto: es lo que te queda por poner de acá en adelante, descontando lo que ya hiciste.</p>
     </div>
   </details>
 
@@ -525,7 +525,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       <span class="chev"></span>
     </summary>
     <div class="det-body">
-      <p class="warn-body">En cada evento MLBB cambia los precios, los tokens y las tareas de la primera semana. Antes de arrancar, entrá al evento y confirmá que los tiros cuesten <strong>25💎 sueltos y 350💎 los 10</strong>, y que la skin salga <strong>720, 800 o 640 monedas</strong> según cuál sea. Si algo cambió, el plan te sirve igual como guía de ritmo, pero los números no van a dar.</p>
+      <p class="warn-body">En cada evento MLBB cambia los precios, los tokens y las tareas de la primera semana. Antes de arrancar, entrá al evento y confirmá que los tiros cuesten <strong>25💎 sueltos y 250💎 los 10 con el descuento diario</strong> (50💎 y 500💎 sin descuento), y que la skin salga <strong>720, 800 o 640 monedas</strong> según cuál sea. Si algo cambió, el plan te sirve igual como guía de ritmo, pero los números no van a dar.</p>
     </div>
   </details>
 
@@ -551,9 +551,9 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   var KEY = "mlbb-plan-colector-v1";
 
   var GOALS = {
-    nueva:   {id:"nueva",   tiros:72, monedas:720, name:"Collector del mes",     hint:"la nueva, recién salida", solo:3500},
-    vuelve:  {id:"vuelve",  tiros:80, monedas:800, name:"Collector que vuelve",  hint:"las de regreso al evento", solo:4000},
-    lucky:   {id:"lucky",   tiros:64, monedas:640, name:"Lucky Box",             hint:"la más barata de las tres", solo:3000}
+    nueva:   {id:"nueva",   tiros:72, monedas:720, name:"Collector del mes",     hint:"la nueva, recién salida"},
+    vuelve:  {id:"vuelve",  tiros:80, monedas:800, name:"Collector que vuelve",  hint:"las de regreso al evento"},
+    lucky:   {id:"lucky",   tiros:64, monedas:640, name:"Lucky Box",             hint:"la más barata de las tres"}
   };
   var GOAL_ORDER = ["nueva","vuelve","lucky"];
 
@@ -625,7 +625,11 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     return P.moneda + " " + v;
   }
 
-  var COST_TIRO = 25, COST_X10 = 350, CRIS_TIRO = 50, CRIS_X10 = 500;
+  // Precios con el descuento diario (el que aprovecha el método) y sin él.
+  // El descuento vale una vez por día: un tiro suelto y un tiro por 10.
+  // Todo lo que compres además de eso, en el mismo día, va a precio lleno.
+  var COST_TIRO = 25, COST_X10 = 250, CRIS_TIRO = 50, CRIS_X10 = 500;
+  var FULL_TIRO = 50, FULL_X10 = 500;
 
   var state = load();
   var currentWeek = null; // se conserva entre re-renders para no volver a la semana 1
@@ -724,7 +728,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
         // salen los cristales", que sólo decide si sus 300💎 y sus 300
         // cristales entran en la cuenta de recarga/farmeo.
         day.tasks = [
-          {t:"1 tiro por 10 (350💎) → <b>10 tiros</b>"},
+          {t:"1 tiro por 10 (250💎) → <b>10 tiros</b>"},
           {t:"1 tiro por 1 (25💎) → <b>1 tiro</b>"},
           {t:"Token por iniciar sesión → <b>1 tiro</b>", key:true},
           {t:"Activá el pase VIP → <b>2 tiros</b>", key:true},
@@ -788,6 +792,47 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var p = 0;
     SOURCES.forEach(function(s){ if(state.src[s.id]) p += s.dia * (s.rate>0 ? n : 1); });
     return p;
+  }
+
+  // Cuánto sale sacarla HOY, de una. El descuento diario vale una sola vez,
+  // así que se aprovecha un tiro por 10 y un tiro suelto a precio con
+  // descuento, y todo lo demás va al doble (50💎 por tiro). Los tokens que
+  // se destraban por gastar y las llaves de 20 y 40 tiros también cuentan
+  // acá — se ganan igual, hagas el método o no.
+  function precioDeUna(tiros){
+    var vip = !!state.src.vip;
+    var acum = 0, gasto = 0;
+    var g100=false, g250=false, g500=false, g20=false, g40=false;
+    function otorgar(){
+      var c = true;
+      while(c){
+        c = false;
+        if(!g100 && gasto >= 100){ acum += 1; g100 = true; c = true; }
+        if(!g250 && gasto >= 250){ acum += 2; g250 = true; c = true; }
+        if(!g500 && gasto >= 500){ acum += 3; g500 = true; c = true; }
+        if(!g20  && acum  >= 20 ){ acum += 1; g20  = true; c = true; }
+        if(!g40  && acum  >= 40 ){ acum += 1; g40  = true; c = true; }
+      }
+    }
+    acum += 1;                                    // token por iniciar sesión
+    if(vip){ acum += 2; gasto += 300; }           // pase VIP
+    acum += 11; gasto += COST_X10 + COST_TIRO;    // el x10 y el suelto con descuento del día
+    otorgar();
+    var tope = 0;
+    while(acum < tiros && tope++ < 999){
+      acum += 1; gasto += FULL_TIRO;              // el resto, sin descuento
+      otorgar();
+    }
+    return gasto;
+  }
+
+  // Costo total del plan en diamantes REALES: el día 1, los tiros diarios y
+  // los paquetes. Los cristales no se suman aparte — salen de esos mismos
+  // paquetes (o ya los tenías), así que contarlos de nuevo sería cobrar dos
+  // veces el mismo gasto, que es lo que hacía que los planes cortos
+  // aparecieran como más caros que los largos.
+  function costoPlan(n){
+    return COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, n-2) + paqueteDesdeCero(n);
   }
 
   function crystalMath(D, todayN){
@@ -924,13 +969,12 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 
     // ahorro de la skin actual vs. comprarla de una — se reusa en el cierre
     // y en la tarjeta de recarga, así el número de plata real nunca aparece solo
-    // El ahorro compara el costo TOTAL del plan contra comprarla de una, así
-    // que el paquete va completo (paqueteDesdeCero), no el que falta pagar
-    // (cm.dia). Con cm.dia el número se inflaba a medida que marcabas días:
-    // al completar el plan, el cálculo se olvidaba de los paquetes diarios
-    // que ya habías pagado y los contaba como si nunca hubieran costado nada.
+    // El ahorro sale de una sola fuente — costoPlan() y precioDeUna() — que
+    // es la misma que usa la tabla de abajo. Así los dos números no pueden
+    // volver a divergir, que ya pasó dos veces.
     var crisActual = built.sim.comprados * CRIS_TIRO;
-    var ahorroActual = goal.solo - (COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, D-2) + paqueteDesdeCero(D) + crisActual);
+    var deUnaActual = precioDeUna(goal.tiros);
+    var ahorroActual = deUnaActual - costoPlan(D);
 
     // --- hoy ---
     var completo = tiros >= goal.tiros;
@@ -1192,14 +1236,13 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var cb = "", ahorroTabla = 0;
     GOAL_ORDER.forEach(function(k){
       var o = GOALS[k];
-      var nk = largoOptimo(Dtotal, todayN, o.tiros);
-      var cris = simular(nk, o.tiros).comprados * CRIS_TIRO;
-      var paq = paqueteDesdeCero(nk);
-      var total = COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, nk-2) + paq + cris;
-      var ahorro = o.solo - total;
+      var nk = (k === state.goal) ? D : largoOptimo(Dtotal, todayN, o.tiros);
+      var deUna = precioDeUna(o.tiros);
+      var total = costoPlan(nk);
+      var ahorro = deUna - total;
       if(k === state.goal) ahorroTabla = ahorro;
       cb += '<tr'+(k===state.goal?' style="background:var(--accent-soft)"':'')+'>'+
-        '<td>'+o.name+'</td><td class="n">'+o.solo+'</td><td class="n">'+total+'</td>'+
+        '<td>'+o.name+'</td><td class="n">'+deUna+'</td><td class="n">'+total+'</td>'+
         '<td class="n save">'+(ahorro>0?"−"+ahorro:"—")+'</td></tr>';
     });
     $("costBody").innerHTML = cb;
