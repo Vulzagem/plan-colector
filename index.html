@@ -859,10 +859,24 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 
     SOURCES.forEach(function(s){
       if(!state.src[s.id]) return;
-      var pendiente = !real || !state.claimed[s.id];
-      if(s.one && pendiente) one += s.one;
+
+      // ¿Sus cristales todavía faltan sumar al saldo que cargaste? Eso lo
+      // responde la casilla "ya está contado en mi saldo".
+      var sumaCristales = !real || !state.claimed[s.id];
+      if(s.one && sumaCristales) one += s.one;
       rate += s.rate;
-      dia += s.dia * (s.rate>0 ? diasCosto : (pendiente ? 1 : 0));
+
+      // ¿Ya pagaste este paquete? Es OTRA pregunta, y hasta acá la contestaba
+      // la misma casilla — por eso completar el plan entero no saldaba nunca
+      // el pase VIP ni el mensual. Los paquetes de una sola vez se compran el
+      // día 1 (activar el pase es una tarea de ese día), así que si el día 1
+      // está hecho, esa plata ya salió. Los diarios siguen los días marcados.
+      if(s.rate > 0){
+        dia += s.dia * diasCosto;
+      } else {
+        var yaPagado = !!state.dias[1] || (real && !!state.claimed[s.id]);
+        dia += yaPagado ? 0 : s.dia;
+      }
     });
 
     var farm = one + rate*diasFarm;
