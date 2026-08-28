@@ -112,6 +112,7 @@ input:focus-visible{outline:2px solid var(--accent-fill);outline-offset:1px}
 
 /* ---- hoy ---- */
 .today{border-color:var(--accent-fill);border-width:1.5px}
+.today.done{border-color:var(--ok)}
 .today-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .today-date{font-family:"Chakra Petch",sans-serif;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600;white-space:nowrap}
 .task{display:flex;gap:9px;align-items:flex-start;font-size:14.5px;line-height:1.35}
@@ -130,6 +131,7 @@ input:focus-visible{outline:2px solid var(--accent-fill);outline-offset:1px}
 .verdict.good{background:var(--ok-soft)}
 .verdict.bad{background:var(--warn-soft)}
 .verdict.mine{background:var(--accent-soft);color:var(--ink)}
+.verdict.money{background:var(--cyan-soft);color:var(--ink)}
 
 /* ---- progreso ---- */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
@@ -145,7 +147,7 @@ input:focus-visible{outline:2px solid var(--accent-fill);outline-offset:1px}
 .wtab{flex:none;font-family:"Chakra Petch",sans-serif;font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:999px;background:var(--surface-2);color:var(--muted);border:1px solid transparent;white-space:nowrap}
 .wtab[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-fill)}
 .wtab .wdone{color:var(--ok)}
-.weeks{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.weeks{display:flex;align-items:flex-start;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
 .weeks::-webkit-scrollbar{display:none}
 .week{flex:0 0 100%;min-width:0;scroll-snap-align:start;display:flex;flex-direction:column;gap:5px}
 .swipe-hint{font-size:11.5px;color:var(--muted);text-align:center;letter-spacing:.02em}
@@ -825,7 +827,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     else if(d.n === todayN) cls += " is-today";
     else if(d.n < todayN) cls += " is-late";
     else cls += " is-future";
-    return '<button type="button" class="'+cls+'" data-day="'+d.n+'">'+
+    return '<button type="button" class="'+cls+'" data-day="'+d.n+'" aria-pressed="'+done+'" aria-label="Día '+d.n+', '+d.title+(done?', hecho':'')+'">'+
       '<span class="check"></span>'+
       '<span class="d-body">'+
         '<span class="d-top"><span class="d-n">DÍA '+d.n+'</span><span class="d-date num">'+fmt(d.date)+'</span>'+
@@ -881,8 +883,31 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     $("subtitle").innerHTML = goal.name + "<br>" + goal.tiros + " tiros · " +
       (recorta > 0 ? (D + " de " + Dtotal + " días") : (D + " días"));
 
+    // --- progreso --- (se calcula antes que "hoy" para poder mostrar el cierre)
+    var tiros = 0, diaGast = 0;
+    plan.forEach(function(d){ if(state.dias[d.n]){ tiros += d.tiros; diaGast += d.dia; } });
+    $("sTiros").textContent = tiros + "/" + goal.tiros;
+    $("sDias").textContent = diaGast;
+    $("sCris").textContent = "~" + cm.mid;
+    $("bar").style.width = Math.min(100, Math.round(tiros/goal.tiros*100)) + "%";
+
+    // ahorro de la skin actual vs. comprarla de una — se reusa en el cierre
+    // y en la tarjeta de recarga, así el número de plata real nunca aparece solo
+    var crisActual = built.sim.comprados * CRIS_TIRO;
+    var ahorroActual = goal.solo - (COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, D-2) + cm.dia + crisActual);
+
     // --- hoy ---
-    if(todayN >= 1 && todayN <= D){
+    var completo = tiros >= goal.tiros;
+    $("todayCard").classList.toggle("done", completo);
+    if(completo){
+      $("todayTitle").textContent = "¡La sacaste! 🎉";
+      $("todayDate").textContent = goal.name;
+      $("todayTasks").innerHTML = taskHTML({t:"Completaste los " + goal.tiros + " tiros" +
+        (ahorroActual > 0 ? ", ahorrando ~" + ahorroActual + "💎 respecto de comprarla de una" : "") +
+        ". Disfrutá la skin.", key:true});
+      $("todayCost").innerHTML = ahorroActual > 0 ? '<span class="pill cri">−'+ahorroActual+'💎 ahorrados</span>' : '';
+      $("btnToday").classList.add("hidden");
+    } else if(todayN >= 1 && todayN <= D){
       var d = plan[todayN-1];
       $("todayTitle").textContent = d.title;
       $("todayDate").textContent = "Día " + d.n + " · " + fmt(d.date);
@@ -910,14 +935,6 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       $("todayCost").innerHTML = "";
       $("btnToday").classList.add("hidden");
     }
-
-    // --- progreso ---
-    var tiros = 0, diaGast = 0;
-    plan.forEach(function(d){ if(state.dias[d.n]){ tiros += d.tiros; diaGast += d.dia; } });
-    $("sTiros").textContent = tiros + "/" + goal.tiros;
-    $("sDias").textContent = diaGast;
-    $("sCris").textContent = "~" + cm.mid;
-    $("bar").style.width = Math.min(100, Math.round(tiros/goal.tiros*100)) + "%";
 
     // --- cristales ---
     var finalDay = plan[D-1];
@@ -1064,17 +1081,20 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var tieneDia = (typeof state.diamantes === "number" && state.diamantes >= 0);
     var recargar = tieneDia ? Math.max(0, faltaTotal - state.diamantes) : null;
     var rc = $("recarga");
+    // la plata real (recargar) usa un tono propio, distinto del ámbar de alerta:
+    // necesitar recargar es la realidad esperada del método, no un problema
+    var ahorroTag = ahorroActual > 0 ? " Ya ahorraste ~" + ahorroActual + "💎 respecto de comprarla de una." : "";
     if(!tieneDia){
       rc.className = "verdict";
       rc.innerHTML = "Poné cuántos diamantes tenés y te digo cuántos te falta <b>recargar</b>.";
     } else if(recargar > 0){
-      rc.className = "verdict bad";
+      rc.className = "verdict money";
       rc.innerHTML = "Con los " + state.diamantes + "💎 que tenés, te falta recargar <b>~" +
-        recargar + "💎</b> para llegar al final del plan.";
+        recargar + "💎</b> para llegar al final del plan." + ahorroTag;
     } else {
       rc.className = "verdict good";
       rc.innerHTML = "Con los " + state.diamantes + "💎 que tenés <b>no necesitás recargar</b>: te sobran ~" +
-        (state.diamantes - faltaTotal) + "💎.";
+        (state.diamantes - faltaTotal) + "💎." + ahorroTag;
     }
     if(document.activeElement !== $("fDiamantes")) $("fDiamantes").value = tieneDia ? state.diamantes : "";
 
@@ -1131,15 +1151,22 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     // respete los días ya transcurridos y las fuentes marcadas "ya reclamadas"
     // — antes recalculaba aparte con nk días completos y sin mirar `claimed`,
     // y quedaba desincronizada de esas dos tarjetas.
-    var cb = "", ahorroActual = 0;
+    // ahorroActual ya se calculó arriba (se reusa en "hoy" y en la recarga);
+    // acá sólo se recalcula para las otras dos skins, con la misma fórmula
+    var cb = "";
     GOAL_ORDER.forEach(function(k){
       var o = GOALS[k];
-      var nk = largoOptimo(Dtotal, todayN, o.tiros);
-      var cris = simular(nk, o.tiros).comprados * CRIS_TIRO;
-      var paq = crystalMath(nk, todayN).dia;
-      var total = COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, nk-2) + paq + cris;
-      var ahorro = o.solo - total;
-      if(k === state.goal) ahorroActual = ahorro;
+      var total, ahorro;
+      if(k === state.goal){
+        total = COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, D-2) + cm.dia + crisActual;
+        ahorro = ahorroActual;
+      } else {
+        var nk = largoOptimo(Dtotal, todayN, o.tiros);
+        var cris = simular(nk, o.tiros).comprados * CRIS_TIRO;
+        var paq = crystalMath(nk, todayN).dia;
+        total = COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, nk-2) + paq + cris;
+        ahorro = o.solo - total;
+      }
       cb += '<tr'+(k===state.goal?' style="background:var(--accent-soft)"':'')+'>'+
         '<td>'+o.name+'</td><td class="n">'+o.solo+'</td><td class="n">'+total+'</td>'+
         '<td class="n save">'+(ahorro>0?"−"+ahorro:"—")+'</td></tr>';
