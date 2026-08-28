@@ -773,13 +773,20 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     return {plan:plan, D:n, goal:goal, sim:sim};
   }
 
-  // Con saldo real sólo proyectamos lo que falta farmear desde mañana hasta el
-  // último día, más los paquetes de una vez que todavía no se reclamaron.
+  // Con saldo real sólo proyectamos lo que falta farmear: los días del plan
+  // que TODAVÍA NO están marcados como hechos, más los paquetes de una vez
+  // que no se reclamaron. Antes esto se calculaba con la fecha del calendario
+  // en vez de las casillas de "Ya lo hice" — así que marcar todos los días
+  // como completados no bajaba el paquete diario/semanal a cero, aunque el
+  // resto de la página (faltaTiros) sí lo hacía. Ahora usan la misma fuente.
   function crystalMath(D, todayN){
     var one = 0, rate = 0, dia = 0;
     var real = (typeof state.saldo === "number" && state.saldo >= 0);
     var dias = D;
-    if(real) dias = Math.max(0, D - Math.max(0, Math.min(todayN, D)));
+    if(real){
+      dias = 0;
+      for(var i=1; i<=D; i++){ if(!state.dias[i]) dias++; }
+    }
 
     SOURCES.forEach(function(s){
       if(!state.src[s.id]) return;
