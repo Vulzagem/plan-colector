@@ -556,7 +556,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   var GOAL_ORDER = ["nueva","vuelve","lucky"];
 
   var SOURCES = [
-    {id:"vip",     name:"Pase VIP",                 meta:"300 cristales de una + 2 tokens del evento", one:300, rate:0,  dia:0},
+    {id:"vip",     name:"Pase VIP",                 meta:"300 cristales de una + 2 tokens del evento", one:300, rate:0,  dia:300},
     {id:"diario",  name:"Paquete diario de 10💎",   meta:"entre 10 y 50 cristales por día (promedio 23)", one:0, rate:23, dia:10},
     {id:"mensual", name:"Paquete mensual de 99💎",  meta:"entre 120 y 300 cristales, una vez al mes", one:200, rate:0, dia:99},
     {id:"semanal", name:"Pases semanales",          meta:"hasta 10 cristales por día en el paquete de elección", one:0, rate:10, dia:0}
@@ -657,7 +657,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   // cristales para llegar al objetivo. Las llaves de 20 y 40 tiros y los
   // tokens por gastar 500💎 se otorgan cuando se cruza el umbral de verdad,
   // no en un día fijo: con cristales ahorrados esos cruces se adelantan.
-  function simular(n, tiros){
+  function simular(n, tiros, vipOn){
     var acum = 0, gasto = 0, g20 = false, g40 = false, g500 = false, hitos = [];
 
     function otorgar(dia){
@@ -670,8 +670,12 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       }
     }
 
+    // el pase VIP cuesta 300💎 de verdad; sin él, el día 1 pierde sus 2 tokens
     for(var i = 1; i <= n; i++){
-      if(i === 1){ acum += 11 + 6; gasto += COST_X10 + COST_TIRO; }
+      if(i === 1){
+        acum += 11 + (vipOn ? 6 : 4);
+        gasto += COST_X10 + COST_TIRO + (vipOn ? 300 : 0);
+      }
       else if(i < n){ acum += 1; gasto += COST_TIRO; }
       otorgar(i);
     }
@@ -688,19 +692,19 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   // El plan más corto que alcanza el objetivo con los cristales disponibles.
   // Menos días es siempre más barato (un tiro diario y un paquete menos por
   // cada día que se recorta), así que el mínimo factible es también el óptimo.
-  function largoOptimo(D, todayN, tiros){
+  function largoOptimo(D, todayN, tiros, vipOn){
     var piso = Math.max(2, Math.min(todayN, D));
     for(var n = piso; n <= D; n++){
-      var need = simular(n, tiros).comprados * CRIS_TIRO;
+      var need = simular(n, tiros, vipOn).comprados * CRIS_TIRO;
       if(need <= crystalMath(n, todayN).mid) return n;
     }
     return D;
   }
 
-  function buildPlan(n, cristales){
+  function buildPlan(n, cristales, vipOn){
     var ini = parseISO(state.ini);
     var goal = GOALS[state.goal];
-    var sim = simular(n, goal.tiros);
+    var sim = simular(n, goal.tiros, vipOn);
     var enDia = function(tipo){
       for(var k=0;k<sim.hitos.length;k++) if(sim.hitos[k].tipo === tipo) return sim.hitos[k].dia;
       return -1;
@@ -713,17 +717,22 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
 
       if(i===1){
         day.title = "Arranque: acá se hace la fuerza";
-        // cada token del evento vale un tiro: por eso el día 1 suma 17 y no 11
+        // cada token del evento vale un tiro: por eso el día 1 rinde más
+        // tiros de los que se pagan directo. El pase VIP cuesta 300💎 de
+        // verdad — no es gratis — así que sólo aparece si está prendido.
         day.tasks = [
           {t:"1 tiro por 10 (350💎) → <b>10 tiros</b>"},
           {t:"1 tiro por 1 (25💎) → <b>1 tiro</b>"},
-          {t:"Token por iniciar sesión → <b>1 tiro</b>", key:true},
-          {t:"Activá el pase VIP: 2 tokens → <b>2 tiros</b> (+300 cristales)", key:true},
-          {t:"Token por gastar 100💎 en el evento → <b>1 tiro</b>", key:true},
-          {t:"2 tokens por gastar 250💎 en el evento → <b>2 tiros</b>", key:true}
+          {t:"Token por iniciar sesión → <b>1 tiro</b>", key:true}
         ];
-        day.tiros = 17; day.dia = COST_X10 + COST_TIRO;
-        day.note = "11 tiros pagados + 6 que te dan los tokens = 17. El tiro por 10 lo podés correr a cualquier día de la primera semana, pero el tiro diario arranca hoy sí o sí.";
+        if(vipOn) day.tasks.push({t:"Activá el pase VIP (300💎) → <b>2 tiros</b> + 300 cristales", key:true});
+        day.tasks.push({t:"Token por gastar 100💎 en el evento → <b>1 tiro</b>", key:true});
+        day.tasks.push({t:"2 tokens por gastar 250💎 en el evento → <b>2 tiros</b>", key:true});
+        day.tiros = vipOn ? 17 : 15;
+        day.dia = COST_X10 + COST_TIRO + (vipOn ? 300 : 0);
+        day.note = vipOn
+          ? "11 tiros pagados + 6 que te dan los tokens = 17 (300💎 del pase VIP incluidos). El tiro por 10 lo podés correr a cualquier día de la primera semana, pero el tiro diario arranca hoy sí o sí."
+          : "11 tiros pagados + 4 que te dan los tokens = 15, sin el pase VIP. El tiro por 10 lo podés correr a cualquier día de la primera semana, pero el tiro diario arranca hoy sí o sí.";
       } else if(i===n){
         // los cristales cubren lo que puedan; el resto de los tiros se paga
         // con diamantes, que salen más baratos por tiro (25💎 vs 50 cristales)
@@ -749,9 +758,13 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       }
 
       // las llaves y tokens caen el día en que se cruza el umbral
-      if(i===d20){ day.tasks.push({t:"Llave por llegar a 20 tiros acumulados → <b>1 tiro</b>", key:true}); day.tiros += 1; day.flag = "Llave · 20 tiros"; }
-      if(i===d500){ day.tasks.push({t:"3 tokens por gastar 500💎 en el evento → <b>3 tiros</b>", key:true}); day.tiros += 3; day.flag = "3 tokens · 500💎"; }
-      if(i===d40){ day.tasks.push({t:"Llave por llegar a 40 tiros acumulados → <b>1 tiro</b>", key:true}); day.tiros += 1; day.flag = "Llave · 40 tiros"; }
+      // los tres hitos pueden coincidir en el mismo día (con el pase VIP el
+      // gasto del día 1 ya pasa los 500💎), por eso las banderas se acumulan
+      var flags = [];
+      if(i===d20){ day.tasks.push({t:"Llave por llegar a 20 tiros acumulados → <b>1 tiro</b>", key:true}); day.tiros += 1; flags.push("Llave · 20 tiros"); }
+      if(i===d500){ day.tasks.push({t:"3 tokens por gastar 500💎 en el evento → <b>3 tiros</b>", key:true}); day.tiros += 3; flags.push("3 tokens · 500💎"); }
+      if(i===d40){ day.tasks.push({t:"Llave por llegar a 40 tiros acumulados → <b>1 tiro</b>", key:true}); day.tiros += 1; flags.push("Llave · 40 tiros"); }
+      day.flag = flags.join(" · ");
 
       acumTiros += day.tiros;
       day.acumTiros = acumTiros;
@@ -862,9 +875,10 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var goal = GOALS[state.goal];
 
     // el plan dura lo que haga falta según los cristales, no todo el evento
-    var D = largoOptimo(Dtotal, todayN, goal.tiros);
+    var vipOn = !!state.src.vip;
+    var D = largoOptimo(Dtotal, todayN, goal.tiros, vipOn);
     var cm = crystalMath(D, todayN);
-    var built = buildPlan(D, cm.mid), plan = built.plan;
+    var built = buildPlan(D, cm.mid, vipOn), plan = built.plan;
     var recorta = Dtotal - D;
 
     $("subtitle").innerHTML = goal.name + "<br>" + goal.tiros + " tiros · " +
@@ -1119,8 +1133,8 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var cb = "", ahorroActual = 0;
     GOAL_ORDER.forEach(function(k){
       var o = GOALS[k];
-      var nk = largoOptimo(Dtotal, todayN, o.tiros);
-      var cris = simular(nk, o.tiros).comprados * CRIS_TIRO;
+      var nk = largoOptimo(Dtotal, todayN, o.tiros, vipOn);
+      var cris = simular(nk, o.tiros, vipOn).comprados * CRIS_TIRO;
       var paq = 0;
       SOURCES.forEach(function(x){ if(state.src[x.id]) paq += x.dia * (x.rate>0 ? nk : 1); });
       var total = COST_X10 + COST_TIRO + COST_TIRO*Math.max(0, nk-2) + paq + cris;
