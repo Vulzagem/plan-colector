@@ -579,7 +579,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       <span class="chev"></span>
     </summary>
     <div class="det-body">
-      <p class="warn-body">En cada evento MLBB cambia los precios, los tokens y las tareas de la primera semana. Antes de arrancar, entrá al evento y confirmá que los tiros cuesten <strong>25💎 sueltos y 250💎 los 10 con el descuento diario</strong> (50💎 y 500💎 sin descuento), y que la skin salga <strong>720, 800 o 640 monedas</strong> según cuál sea. Si algo cambió, el plan te sirve igual como guía de ritmo, pero los números no van a dar.</p>
+      <p class="warn-body">En cada evento MLBB cambia los precios, los tokens y las tareas de la primera semana. Antes de arrancar, entrá al evento y confirmá que los tiros cuesten <strong>25💎 sueltos y 350💎 los 10 con el descuento diario</strong> (50💎 y 500💎 sin descuento), y que la skin salga <strong>720, 800 o 640 monedas</strong> según cuál sea. Si algo cambió, el plan te sirve igual como guía de ritmo, pero los números no van a dar.</p>
     </div>
   </details>
 
@@ -682,7 +682,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   // Precios con el descuento diario (el que aprovecha el método) y sin él.
   // El descuento vale una vez por día: un tiro suelto y un tiro por 10.
   // Todo lo que compres además de eso, en el mismo día, va a precio lleno.
-  var COST_TIRO = 25, COST_X10 = 250, CRIS_TIRO = 50, CRIS_X10 = 500;
+  var COST_TIRO = 25, COST_X10 = 350, CRIS_TIRO = 50, CRIS_X10 = 500;
   var FULL_TIRO = 50, FULL_X10 = 500;
 
   var state = load();
@@ -784,7 +784,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
         // salen los cristales", que sólo decide si sus 300💎 y sus 300
         // cristales entran en la cuenta de recarga/farmeo.
         day.tasks = [
-          {t:"1 tiro por 10 (250💎) → <b>10 tiros</b>"},
+          {t:"1 tiro por 10 (350💎) → <b>10 tiros</b>"},
           {t:"1 tiro por 1 (25💎) → <b>1 tiro</b>"},
           {t:"Token por iniciar sesión → <b>1 tiro</b>", key:true},
           {t:"Activá el pase VIP → <b>2 tiros</b>", key:true},
