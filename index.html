@@ -333,6 +333,11 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     <div class="section" id="todayTasks"></div>
     <div class="cost-pills" id="todayCost"></div>
     <button class="btn-primary" id="btnToday">Ya lo hice</button>
+    <p class="note hidden" id="fixTirosNote"><a href="#" id="lnkFixTiros"></a></p>
+    <div class="balance-row hidden" id="fixTirosForm">
+      <input type="number" id="fTirosReal" min="0" step="1" inputmode="numeric" placeholder="los tiros que sacaste de verdad">
+      <button class="btn-primary btn-sm" id="btnFixTiros">Guardar</button>
+    </div>
   </section>
 
   <!-- ===== CRISTALES ===== -->
@@ -696,6 +701,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       if(!raw) return null;
       var s = JSON.parse(raw);
       if(!s.claimed) s.claimed = {};
+      if(!s.tirosReales) s.tirosReales = {};
       if(typeof s.saldo === "undefined") s.saldo = null;
       if(typeof s.diamantes === "undefined") s.diamantes = null;
       return s;
@@ -968,6 +974,15 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     return '<div class="task'+(t.key?" key":"")+'"><span class="dot"></span><span>'+t.t+'</span></div>';
   }
 
+  // Cada evento reparte llaves y tokens distinto — a veces de más, a veces de
+  // menos que lo que el modelo asume. Esto deja corregir cuántos tiros dio un
+  // día de verdad, sin tener que adivinar las variables de cada evento.
+  // Sólo pisa el número simulado cuando hay una corrección guardada.
+  function tirosDia(d){
+    var r = state.tirosReales[d.n];
+    return (typeof r === "number") ? r : d.tiros;
+  }
+
   function dayHTML(d, todayN){
     var done = !!state.dias[d.n];
     var cls = "day";
@@ -983,7 +998,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       '<span class="check"></span>'+
       '<span class="d-body">'+
         '<span class="d-top"><span class="d-n">DÍA '+d.n+'</span><span class="d-date num">'+fmt(d.date)+'</span>'+
-        '<span class="d-acum num">+'+d.tiros+' → '+d.acumTiros+' tiros</span>'+
+        '<span class="d-acum num">+'+tirosDia(d)+' → '+d.acumTiros+' tiros</span>'+
         (!done && d.n<todayN ? '<span class="pill warn">atrasado</span>' : '')+'</span>'+
         '<span class="d-title">'+d.title+'</span>'+
         (d.flag ? '<span class="d-flag">★ '+d.flag+'</span>' : '')+
@@ -1036,8 +1051,16 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       (recorta > 0 ? (D + " de " + Dtotal + " días") : (D + " días"));
 
     // --- progreso --- (se calcula antes que "hoy" para poder mostrar el cierre)
-    var tiros = 0, diaGast = 0;
-    plan.forEach(function(d){ if(state.dias[d.n]){ tiros += d.tiros; diaGast += d.dia; } });
+    // acumTiros se recalcula acá encima del valor teórico de buildPlan: si un
+    // día tiene tiros corregidos, el arrastre tiene que verse en los días
+    // siguientes del carrusel, no sólo en el total de arriba.
+    var tiros = 0, diaGast = 0, acumCorregido = 0;
+    plan.forEach(function(d){
+      var efectivo = tirosDia(d);
+      acumCorregido += efectivo;
+      d.acumTiros = acumCorregido;
+      if(state.dias[d.n]){ tiros += efectivo; diaGast += d.dia; }
+    });
     $("sTiros").textContent = tiros + "/" + goal.tiros;
     $("sDias").textContent = diaGast;
     $("sCris").textContent = "~" + cm.mid;
@@ -1056,6 +1079,8 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var ahorroActual = deUnaActual - costoPlan(D);
 
     // --- hoy ---
+    $("fixTirosNote").classList.add("hidden");
+    $("fixTirosForm").classList.add("hidden");
     // El festejo se dispara al CRUZAR el objetivo estando vos mirando, no al
     // abrir la página con el plan ya terminado — de ahí el `primerRender`.
     var completo = tiros >= goal.tiros;
@@ -1084,16 +1109,46 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       $("todayTitle").textContent = d.title;
       $("todayDate").textContent = "Día " + d.n + " · " + fmt(d.date);
       $("todayTasks").innerHTML = d.tasks.map(taskHTML).join("");
+      var efectivoHoy = tirosDia(d);
       var pills = [];
       if(d.dia) pills.push('<span class="pill dia">'+d.dia+'💎</span>');
       if(d.cris) pills.push('<span class="pill cri">'+d.cris+' cristales</span>');
-      pills.push('<span class="pill">+'+d.tiros+' tiros</span>');
+      pills.push('<span class="pill">+'+efectivoHoy+' tiros</span>');
       $("todayCost").innerHTML = pills.join("");
       var done = !!state.dias[d.n];
       $("btnToday").classList.remove("hidden");
       $("btnToday").textContent = done ? "✓ Hecho — desmarcar" : "Ya lo hice";
       $("btnToday").className = done ? "btn-ghost" : "btn-primary";
       $("btnToday").onclick = function(){ toggleDay(d.n); };
+
+      // Corrección manual: cada evento reparte llaves distinto, así que lo
+      // que el plan calcula (d.tiros) puede no coincidir con lo que el juego
+      // te dio de verdad. Sólo aparece una vez marcado el día — antes no hay
+      // nada que corregir todavía.
+      if(done){
+        $("fixTirosNote").classList.remove("hidden");
+        var tieneReal = typeof state.tirosReales[d.n] === "number";
+        $("lnkFixTiros").textContent = tieneReal
+          ? ("Corregiste este día a " + state.tirosReales[d.n] + " tiros · cambiar")
+          : "¿Te dio otra cantidad de tiros? Corregila acá";
+        $("fTirosReal").value = efectivoHoy;
+        $("lnkFixTiros").onclick = function(e){
+          e.preventDefault();
+          $("fixTirosForm").classList.toggle("hidden");
+          if(!$("fixTirosForm").classList.contains("hidden")) $("fTirosReal").focus();
+        };
+        $("btnFixTiros").onclick = function(){
+          var raw = $("fTirosReal").value.trim();
+          if(raw === ""){ delete state.tirosReales[d.n]; }
+          else{
+            var n = parseInt(raw, 10);
+            if(isNaN(n) || n < 0) return;
+            if(n === d.tiros) delete state.tirosReales[d.n];
+            else state.tirosReales[d.n] = n;
+          }
+          save(); render();
+        };
+      }
     } else if(todayN < 1){
       $("todayTitle").textContent = "Todavía no arrancó";
       $("todayDate").textContent = "Faltan " + (1-todayN) + " días";
@@ -1555,7 +1610,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     if(!ini || !fin){ err.textContent = "Poné las dos fechas del evento."; return; }
     if(dayDiff(parseISO(ini), parseISO(fin)) < 6){ err.textContent = "El evento tiene que durar al menos 7 días para que el método cierre."; return; }
     err.textContent = "";
-    state = {goal:goal, ini:ini, fin:fin, dias:{}, src:{vip:true, diario:true, mensual:true, semanal:false}, hora:"20:00", saldo:null, claimed:{}, diamantes:null, pais:"ar"};
+    state = {goal:goal, ini:ini, fin:fin, dias:{}, src:{vip:true, diario:true, mensual:true, semanal:false}, hora:"20:00", saldo:null, claimed:{}, diamantes:null, pais:"ar", tirosReales:{}};
     currentWeek = null;
     save(); render();
     window.scrollTo({top:0, behavior:"smooth"});
