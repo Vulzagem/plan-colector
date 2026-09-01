@@ -364,7 +364,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       <details id="srcDetails">
         <summary>
           <span class="sum-l">
-            <span class="sum-t">De dónde salen los cristales</span>
+            <span class="sum-t">⭐ De dónde salen los cristales</span>
             <span class="sum-s" id="srcSummary"></span>
           </span>
           <span class="chev"></span>
@@ -448,7 +448,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       </div>
       <div class="prog-lado">
         <div class="stat"><span class="v" id="sDias">0</span><span class="k">💎 gastados</span></div>
-        <div class="stat"><span class="v" id="sCris">0</span><span class="k">cristales al final</span></div>
+        <div class="stat"><span class="v" id="sCris">0</span><span class="k">⭐ cristales al final</span></div>
       </div>
     </div>
   </section>
@@ -805,8 +805,8 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
         var falta = sim.comprados;
         var conCris = Math.min(falta, Math.floor(cristales / CRIS_TIRO));
         var conDia = falta - conCris;
-        day.title = "Día final: quemá los cristales";
-        if(conCris>0) day.tasks.push({t:conCris+" "+(conCris===1?"tiro":"tiros")+" con cristales · <b>"+(conCris*CRIS_TIRO)+" cristales</b>", key:true});
+        day.title = "Día final: quemá los cristales ⭐";
+        if(conCris>0) day.tasks.push({t:conCris+" "+(conCris===1?"tiro":"tiros")+" con cristales · <b>"+(conCris*CRIS_TIRO)+" cristales ⭐</b>", key:true});
         if(conDia>0)  day.tasks.push({t:conDia+" "+(conDia===1?"tiro":"tiros")+" con diamantes · <b>"+(conDia*COST_TIRO)+"💎</b>", key:true});
         if(falta<=0)  day.tasks.push({t:"Ya llegaste al objetivo sin gastar cristales.", key:true});
         day.tiros = falta;
@@ -1112,7 +1112,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       var efectivoHoy = tirosDia(d);
       var pills = [];
       if(d.dia) pills.push('<span class="pill dia">'+d.dia+'💎</span>');
-      if(d.cris) pills.push('<span class="pill cri">'+d.cris+' cristales</span>');
+      if(d.cris) pills.push('<span class="pill cri">'+d.cris+' cristales ⭐</span>');
       pills.push('<span class="pill">+'+efectivoHoy+' tiros</span>');
       $("todayCost").innerHTML = pills.join("");
       var done = !!state.dias[d.n];
