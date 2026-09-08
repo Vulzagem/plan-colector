@@ -333,11 +333,6 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     <div class="section" id="todayTasks"></div>
     <div class="cost-pills" id="todayCost"></div>
     <button class="btn-primary" id="btnToday">Ya lo hice</button>
-    <p class="note hidden" id="fixTirosNote"><a href="#" id="lnkFixTiros"></a></p>
-    <div class="balance-row hidden" id="fixTirosForm">
-      <input type="number" id="fTirosReal" min="0" step="1" inputmode="numeric" placeholder="los tiros que sacaste de verdad">
-      <button class="btn-primary btn-sm" id="btnFixTiros">Guardar</button>
-    </div>
   </section>
 
   <!-- ===== CRISTALES ===== -->
@@ -459,6 +454,32 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     <div class="wtabs" id="wtabs"></div>
     <div class="weeks" id="weeks"></div>
     <p class="swipe-hint" id="swipeHint"></p>
+    <!-- Las llaves y tokens los calcula el modelo para un día fijo, sin mirar
+         el progreso real — si no coinciden con lo que te dio el juego (o si
+         ya no es "hoy"), esto corrige cualquier día ya marcado. -->
+    <details id="fixDayCard">
+      <summary>
+        <span class="sum-l">
+          <span class="sum-t">Corregir los tiros de un día</span>
+          <span class="sum-s">Por si una llave o token no coincidió con lo que te dio el juego</span>
+        </span>
+        <span class="chev"></span>
+      </summary>
+      <div class="det-body">
+        <div class="field">
+          <label for="fDiaCorregir">Qué día</label>
+          <select id="fDiaCorregir"></select>
+        </div>
+        <div class="field">
+          <label for="fTirosCorregir">Tiros reales de ese día</label>
+          <div class="balance-row">
+            <input type="number" id="fTirosCorregir" min="0" step="1" inputmode="numeric">
+            <button class="btn-primary btn-sm" id="btnFixDay">Guardar</button>
+          </div>
+        </div>
+        <p class="note" id="fixDayNote"></p>
+      </div>
+    </details>
   </section>
 
   <!-- ===== RECORDATORIO ===== -->
@@ -1079,8 +1100,6 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var ahorroActual = deUnaActual - costoPlan(D);
 
     // --- hoy ---
-    $("fixTirosNote").classList.add("hidden");
-    $("fixTirosForm").classList.add("hidden");
     // El festejo se dispara al CRUZAR el objetivo estando vos mirando, no al
     // abrir la página con el plan ya terminado — de ahí el `primerRender`.
     var completo = tiros >= goal.tiros;
@@ -1120,35 +1139,6 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       $("btnToday").textContent = done ? "✓ Hecho — desmarcar" : "Ya lo hice";
       $("btnToday").className = done ? "btn-ghost" : "btn-primary";
       $("btnToday").onclick = function(){ toggleDay(d.n); };
-
-      // Corrección manual: cada evento reparte llaves distinto, así que lo
-      // que el plan calcula (d.tiros) puede no coincidir con lo que el juego
-      // te dio de verdad. Sólo aparece una vez marcado el día — antes no hay
-      // nada que corregir todavía.
-      if(done){
-        $("fixTirosNote").classList.remove("hidden");
-        var tieneReal = typeof state.tirosReales[d.n] === "number";
-        $("lnkFixTiros").textContent = tieneReal
-          ? ("Corregiste este día a " + state.tirosReales[d.n] + " tiros · cambiar")
-          : "¿Te dio otra cantidad de tiros? Corregila acá";
-        $("fTirosReal").value = efectivoHoy;
-        $("lnkFixTiros").onclick = function(e){
-          e.preventDefault();
-          $("fixTirosForm").classList.toggle("hidden");
-          if(!$("fixTirosForm").classList.contains("hidden")) $("fTirosReal").focus();
-        };
-        $("btnFixTiros").onclick = function(){
-          var raw = $("fTirosReal").value.trim();
-          if(raw === ""){ delete state.tirosReales[d.n]; }
-          else{
-            var n = parseInt(raw, 10);
-            if(isNaN(n) || n < 0) return;
-            if(n === d.tiros) delete state.tirosReales[d.n];
-            else state.tirosReales[d.n] = n;
-          }
-          save(); render();
-        };
-      }
     } else if(todayN < 1){
       $("todayTitle").textContent = "Todavía no arrancó";
       $("todayDate").textContent = "Faltan " + (1-todayN) + " días";
@@ -1287,6 +1277,48 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
         save(); render();
       });
       av.appendChild(b);
+    }
+
+    // --- corregir los tiros de un día ya marcado ---
+    // Las llaves y los 3 tokens por gastar 500💎 los asigna el modelo a un
+    // día fijo, sin mirar el progreso real — si tu evento los repartió
+    // distinto, esto corrige cualquier día ya hecho, no sólo el de hoy.
+    var fixSel = $("fDiaCorregir");
+    var fixSelPrevio = fixSel.value ? parseInt(fixSel.value, 10) : null;
+    var diasHechos = plan.filter(function(d){ return state.dias[d.n]; });
+    $("fixDayCard").classList.toggle("hidden", diasHechos.length === 0);
+    if(diasHechos.length){
+      fixSel.innerHTML = diasHechos.map(function(d){
+        return '<option value="'+d.n+'">Día '+d.n+' · '+fmt(d.date)+'</option>';
+      }).join("");
+      var fixSelTarget = diasHechos.some(function(d){ return d.n === fixSelPrevio; })
+        ? fixSelPrevio
+        : diasHechos[diasHechos.length - 1].n;
+      fixSel.value = fixSelTarget;
+      var actualizarFixDay = function(){
+        var n = parseInt(fixSel.value, 10);
+        var dia = plan[n - 1];
+        var real = state.tirosReales[n];
+        $("fTirosCorregir").value = tirosDia(dia);
+        $("fixDayNote").textContent = (typeof real === "number")
+          ? ("El plan calcula " + dia.tiros + " tiros para ese día; lo corregiste a " + real + ".")
+          : ("El plan calcula " + dia.tiros + " tiros para ese día.");
+      };
+      actualizarFixDay();
+      fixSel.onchange = actualizarFixDay;
+      $("btnFixDay").onclick = function(){
+        var n = parseInt(fixSel.value, 10);
+        var dia = plan[n - 1];
+        var raw = $("fTirosCorregir").value.trim();
+        if(raw === ""){ delete state.tirosReales[n]; }
+        else{
+          var val = parseInt(raw, 10);
+          if(isNaN(val) || val < 0) return;
+          if(val === dia.tiros) delete state.tirosReales[n];
+          else state.tirosReales[n] = val;
+        }
+        save(); render();
+      };
     }
 
     var weeks = $("weeks");
