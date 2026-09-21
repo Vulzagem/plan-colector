@@ -1068,9 +1068,6 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var built = buildPlan(D, cm.mid), plan = built.plan;
     var recorta = Dtotal - D;
 
-    $("subtitle").innerHTML = goal.name + "<br>" + goal.tiros + " tiros · " +
-      (recorta > 0 ? (D + " de " + Dtotal + " días") : (D + " días"));
-
     // --- progreso --- (se calcula antes que "hoy" para poder mostrar el cierre)
     // acumTiros se recalcula acá encima del valor teórico de buildPlan: si un
     // día tiene tiros corregidos, el arrastre tiene que verse en los días
@@ -1082,6 +1079,29 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
       d.acumTiros = acumCorregido;
       if(state.dias[d.n]){ tiros += efectivo; diaGast += d.dia; }
     });
+
+    var completo = tiros >= goal.tiros;
+    // Si el objetivo se cruzó ANTES del día D del plan (por ejemplo, quemando
+    // cristales guardados antes de lo previsto), el plan real terminó ese
+    // día, no en D — de ahí en más no hay nada más que mostrar como pendiente.
+    // diaFinReal es el primer día, recorriendo sólo los marcados como hechos
+    // en orden, en el que el acumulado llega al objetivo.
+    var diaFinReal = null;
+    if(completo){
+      var acumReal = 0;
+      for(var k=0; k<plan.length; k++){
+        if(state.dias[plan[k].n]){
+          acumReal += tirosDia(plan[k]);
+          if(acumReal >= goal.tiros){ diaFinReal = plan[k].n; break; }
+        }
+      }
+    }
+    var Dmostrado = diaFinReal || D;
+
+    $("subtitle").innerHTML = goal.name + "<br>" + goal.tiros + " tiros · " +
+      (completo ? (Dmostrado + " días")
+                : (recorta > 0 ? (D + " de " + Dtotal + " días") : (D + " días")));
+
     $("sTiros").textContent = tiros + "/" + goal.tiros;
     $("sDias").textContent = diaGast;
     $("sCris").textContent = "~" + cm.mid;
@@ -1102,7 +1122,6 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     // --- hoy ---
     // El festejo se dispara al CRUZAR el objetivo estando vos mirando, no al
     // abrir la página con el plan ya terminado — de ahí el `primerRender`.
-    var completo = tiros >= goal.tiros;
     if(!completo){
       yaFestejado = false;   // si desmarcás y volvés a completar, festeja otra vez
     } else if(!yaFestejado){
@@ -1243,8 +1262,11 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     // se guarda ANTES de tocar el DOM: reemplazar el HTML dispara un scroll a 0
     // que si no llegaría a pisar la semana en la que estabas parado
     var weekTarget = currentWeek;
+    // una vez cumplido el objetivo, los días después de diaFinReal no hace
+    // falta mostrarlos — ya no hay nada pendiente ahí.
+    var planMostrado = completo ? plan.slice(0, Dmostrado) : plan;
     var semanas = [];
-    for(var i=0;i<plan.length;i+=7) semanas.push(plan.slice(i, i+7));
+    for(var i=0;i<planMostrado.length;i+=7) semanas.push(planMostrado.slice(i, i+7));
     var wh = "", th = "";
     semanas.forEach(function(sem, idx){
       var hechos = sem.filter(function(d){ return state.dias[d.n]; }).length;
@@ -1262,7 +1284,7 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     // explicar que el plan ya se recalculó solo. Acá se dice, y se ofrece el
     // atajo para no tener que tildar día por día.
     var atrasados = [];
-    plan.forEach(function(d){ if(!state.dias[d.n] && d.n < todayN) atrasados.push(d.n); });
+    if(!completo) plan.forEach(function(d){ if(!state.dias[d.n] && d.n < todayN) atrasados.push(d.n); });
     var av = $("avisoAtrasados");
     av.classList.toggle("hidden", atrasados.length === 0);
     if(atrasados.length){
