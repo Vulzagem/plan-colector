@@ -762,10 +762,21 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     for(var i = 1; i <= Dtotal; i++){
       if(!state.dias[i]) continue;
       var real = state.tirosReales[i];
-      var base = (i === 1) ? 17 : 1;
-      acum += (typeof real === "number") ? real : base;
       gasto += (i === 1) ? (COST_X10 + COST_TIRO) : COST_TIRO;
-      otorgar(i);
+      if(typeof real === "number"){
+        // el número que cargaste ya es el total real de ese día, con
+        // cualquier llave o token que te haya tocado incluido — no hay que
+        // volver a acreditar el bono por encima (eso duplicaba el cruce del
+        // umbral y hacía que sobrara progreso, dejando el día final corto).
+        // Sólo se actualizan las banderas para no volver a ofrecerlo después.
+        acum += real;
+        if(acum >= 20) g20 = true;
+        if(gasto >= 500) g500 = true;
+        if(acum >= 40) g40 = true;
+      } else {
+        acum += (i === 1) ? 17 : 1;
+        otorgar(i);
+      }
       ultimoDia = i;
     }
     // hitos: dónde cayeron de verdad las llaves/tokens dentro de lo ya hecho.
