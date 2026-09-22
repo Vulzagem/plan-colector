@@ -739,15 +739,54 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   var MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
   function fmt(d){ return d.getDate()+" "+MESES[d.getMonth()]; }
 
+  // Recorre los días ya marcados como hechos y arma el punto de partida real
+  // para la simulación: usa la corrección manual de cada día si existe, y si
+  // no, el tiro base (17 el primero, 1 el resto). Las llaves y los 3 tokens
+  // por 500💎 se acreditan apenas el acumulado real los cruza — no cuando
+  // "debería" según un modelo que arranca en cero. Esto es lo que hace que
+  // simular()/largoOptimo() dejen de subestimar a alguien cuyo evento repartió
+  // más de lo que el promedio asume: el eventual excedente de días o de
+  // cristales que pedía cargar de más ya no se calcula sobre progreso cero.
+  function progresoReal(Dtotal){
+    var acum = 0, gasto = 0, g20 = false, g40 = false, g500 = false, ultimoDia = 0;
+    var hitos = [];
+    function otorgar(dia){
+      var cambio = true;
+      while(cambio){
+        cambio = false;
+        if(!g20 && acum >= 20){ acum += 1; g20 = true; cambio = true; hitos.push({dia:dia, tipo:"t20"}); }
+        if(!g500 && gasto >= 500){ acum += 3; g500 = true; cambio = true; hitos.push({dia:dia, tipo:"t500"}); }
+        if(!g40 && acum >= 40){ acum += 1; g40 = true; cambio = true; hitos.push({dia:dia, tipo:"t40"}); }
+      }
+    }
+    for(var i = 1; i <= Dtotal; i++){
+      if(!state.dias[i]) continue;
+      var real = state.tirosReales[i];
+      var base = (i === 1) ? 17 : 1;
+      acum += (typeof real === "number") ? real : base;
+      gasto += (i === 1) ? (COST_X10 + COST_TIRO) : COST_TIRO;
+      otorgar(i);
+      ultimoDia = i;
+    }
+    // hitos: dónde cayeron de verdad las llaves/tokens dentro de lo ya hecho.
+    // buildPlan los necesita para que el día que de verdad cruzó el umbral
+    // muestre el bono — si no, un día sin corrección individual se queda con
+    // el tiro base nomás, y el total del carrusel queda por debajo del real.
+    return {acum:acum, gasto:gasto, g20:g20, g40:g40, g500:g500, ultimoDia:ultimoDia, hitos:hitos};
+  }
+
   // Modelo: día 1 son 17 tiros (1 tiro por 10 + 1 suelto), después 1 tiro por
   // día, +2 llaves (a los 20 y 40 tiros) y +4 tokens de la primera semana.
   // Los cristales se guardan y se queman todos el último día.
   // Simula un plan de n días y devuelve cuántos tiros hay que pagar con
-  // cristales para llegar al objetivo. Las llaves de 20 y 40 tiros y los
-  // tokens por gastar 500💎 se otorgan cuando se cruza el umbral de verdad,
-  // no en un día fijo: con cristales ahorrados esos cruces se adelantan.
-  function simular(n, tiros){
-    var acum = 0, gasto = 0, g20 = false, g40 = false, g500 = false, hitos = [];
+  // cristales para llegar al objetivo. Arranca desde `reales` (ver
+  // progresoReal) en vez de desde cero, así que si ya pasaste el día de hoy
+  // con más tiros de los que el modelo asume, lo que falta se recalcula
+  // sobre eso — no sobre un progreso teórico que nunca tuviste.
+  function simular(n, tiros, reales){
+    var acum = reales.acum, gasto = reales.gasto;
+    var g20 = reales.g20, g40 = reales.g40, g500 = reales.g500;
+    var hitos = [];
 
     function otorgar(dia){
       var cambio = true;
@@ -762,7 +801,9 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     // el día 1 es siempre igual: activar el pase VIP no suma tiros, sólo
     // cuesta 300💎 aparte (ver crystalMath) y da 300 cristales. Lo único
     // que cambia con los cristales ahorrados es cuánto hay que recargar.
-    for(var i = 1; i <= n; i++){
+    // Si ya hay progreso real, el día 1 ya pasó — se arranca justo después
+    // del último día real, con el ritmo teórico normal.
+    for(var i = Math.max(1, reales.ultimoDia + 1); i <= n; i++){
       if(i === 1){ acum += 11 + 6; gasto += COST_X10 + COST_TIRO; }
       else if(i < n){ acum += 1; gasto += COST_TIRO; }
       otorgar(i);
@@ -780,21 +821,25 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
   // El plan más corto que alcanza el objetivo con los cristales disponibles.
   // Menos días es siempre más barato (un tiro diario y un paquete menos por
   // cada día que se recorta), así que el mínimo factible es también el óptimo.
-  function largoOptimo(D, todayN, tiros){
-    var piso = Math.max(2, Math.min(todayN, D));
+  function largoOptimo(D, todayN, tiros, reales){
+    var piso = Math.max(2, Math.min(todayN, D), reales.ultimoDia + 1);
     for(var n = piso; n <= D; n++){
-      var need = simular(n, tiros).comprados * CRIS_TIRO;
+      var need = simular(n, tiros, reales).comprados * CRIS_TIRO;
       if(need <= crystalMath(n, todayN).mid) return n;
     }
-    return D;
+    return Math.max(D, piso);
   }
 
-  function buildPlan(n, cristales){
+  function buildPlan(n, cristales, reales){
     var ini = parseISO(state.ini);
     var goal = GOALS[state.goal];
-    var sim = simular(n, goal.tiros);
+    var sim = simular(n, goal.tiros, reales);
+    // los hitos de reales (ya ocurridos, dentro de lo hecho) más los de sim
+    // (los que faltan): un día sin corrección individual necesita saber si
+    // ahí cruzó el umbral de verdad, si no se queda con el tiro base nomás.
+    var hitosTotal = reales.hitos.concat(sim.hitos);
     var enDia = function(tipo){
-      for(var k=0;k<sim.hitos.length;k++) if(sim.hitos[k].tipo === tipo) return sim.hitos[k].dia;
+      for(var k=0;k<hitosTotal.length;k++) if(hitosTotal[k].tipo === tipo) return hitosTotal[k].dia;
       return -1;
     };
     var d20 = enDia("t20"), d500 = enDia("t500"), d40 = enDia("t40");
@@ -1062,10 +1107,14 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     var Dtotal = dayDiff(ini, fin) + 1;
     var goal = GOALS[state.goal];
 
+    // punto de partida real: lo que ya está marcado como hecho, con las
+    // correcciones cargadas — el plan se calcula desde ahí, no desde cero.
+    var reales = progresoReal(Dtotal);
+
     // el plan dura lo que haga falta según los cristales, no todo el evento
-    var D = largoOptimo(Dtotal, todayN, goal.tiros);
+    var D = largoOptimo(Dtotal, todayN, goal.tiros, reales);
     var cm = crystalMath(D, todayN);
-    var built = buildPlan(D, cm.mid), plan = built.plan;
+    var built = buildPlan(D, cm.mid, reales), plan = built.plan;
     var recorta = Dtotal - D;
 
     // --- progreso --- (se calcula antes que "hoy" para poder mostrar el cierre)
@@ -1509,10 +1558,11 @@ footer{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.4}
     // esta tabla los reutilizara, "día 1 + diarios + cristales" seguirían
     // siendo teóricos mientras que "paquetes" solo bajaría con tu progreso:
     // una mezcla que rompía la comparación a medida que avanzabas el plan.
+    var sinProgreso = {acum:0, gasto:0, g20:false, g40:false, g500:false, ultimoDia:0};
     var cb = "", ahorroTabla = 0;
     GOAL_ORDER.forEach(function(k){
       var o = GOALS[k];
-      var nk = (k === state.goal) ? D : largoOptimo(Dtotal, todayN, o.tiros);
+      var nk = (k === state.goal) ? D : largoOptimo(Dtotal, todayN, o.tiros, sinProgreso);
       var deUna = precioDeUna(o.tiros);
       var total = costoPlan(nk);
       var ahorro = deUna - total;
